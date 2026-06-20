@@ -195,8 +195,17 @@ input::placeholder{color:#8aa394}
 .open-toggle.is-closed .ot-main{color:#cfcfcf}
 
 /* ---------- スタッフ タブ ---------- */
-.staff-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin:1rem 0 .2rem}
-.staff-tab{padding:.7rem .3rem;border-radius:12px 12px 0 0;border:1px solid var(--felt-line);border-bottom:none;background:rgba(0,0,0,.2);color:var(--cream-dim);font-weight:700;cursor:pointer;font-family:inherit;font-size:.86rem;transition:all .15s}
+.staff-tabs{display:flex;gap:.4rem;margin:1rem 0 .2rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.staff-tabs::-webkit-scrollbar{display:none}
+.staff-tab{flex:none;white-space:nowrap;padding:.7rem 1rem;border-radius:12px 12px 0 0;border:1px solid var(--felt-line);border-bottom:none;background:rgba(0,0,0,.2);color:var(--cream-dim);font-weight:700;cursor:pointer;font-family:inherit;font-size:.86rem;transition:all .15s}
+
+/* ---------- 写真管理 ---------- */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:1rem}
+.photo-cell{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid var(--felt-line);background:rgba(0,0,0,.2)}
+.photo-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-del{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:8px;border:none;cursor:pointer;background:rgba(192,57,43,.92);color:#fff;font-size:1rem;font-weight:900;line-height:1;display:grid;place-items:center}
+.photo-del:active{transform:scale(.92)}
+.photo-empty{grid-column:1/-1;text-align:center;color:var(--cream-dim);font-size:.88rem;padding:1.4rem 0}
 .staff-tab.active{background:var(--gold);color:#0a2e1c;border-color:var(--gold)}
 .tab-panel{display:none;flex-direction:column;flex:1}
 .tab-panel.active{display:flex}
@@ -418,6 +427,7 @@ input::placeholder{color:#8aa394}
         <button class="staff-tab active" id="tabQr" data-tab="qr">QRスキャン</button>
         <button class="staff-tab" id="tabEvents" data-tab="events">イベント管理</button>
         <button class="staff-tab" id="tabCms" data-tab="cms">サイト編集</button>
+        <button class="staff-tab" id="tabPhotos" data-tab="photos">写真管理</button>
       </div>
 
       <!-- ===== タブ1: QRスキャン ===== -->
@@ -517,6 +527,19 @@ input::placeholder{color:#8aa394}
             <button class="btn btn-gold" id="cmsSave">すべて保存してサイトに反映</button>
             <div class="msg" id="cmsMsg"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== タブ4: 写真管理 ===== -->
+      <div class="tab-panel" id="panel-photos">
+        <p class="tiny center" style="margin:1rem 0 .6rem">店内写真をアップロードすると、公式サイトの「はじめての方へ」でスライドショー表示されます。</p>
+
+        <label class="btn btn-gold" for="photoInput" style="cursor:pointer">＋ 写真をアップロード</label>
+        <input id="photoInput" type="file" accept="image/*" multiple style="display:none" />
+        <div class="msg" id="photoMsg"></div>
+
+        <div class="photo-grid" id="photoGrid">
+          <div class="tiny center" style="grid-column:1/-1;padding:1.2rem 0">読み込み中…</div>
         </div>
       </div>
 
@@ -783,20 +806,24 @@ function switchStaffTab(tab){
   document.getElementById("tabQr").classList.toggle("active", tab==="qr");
   document.getElementById("tabEvents").classList.toggle("active", tab==="events");
   document.getElementById("tabCms").classList.toggle("active", tab==="cms");
+  document.getElementById("tabPhotos").classList.toggle("active", tab==="photos");
   document.getElementById("panel-qr").classList.toggle("active", tab==="qr");
   document.getElementById("panel-events").classList.toggle("active", tab==="events");
   document.getElementById("panel-cms").classList.toggle("active", tab==="cms");
+  document.getElementById("panel-photos").classList.toggle("active", tab==="photos");
   if(tab==="qr"){
     startScanner();
   }else{
     stopScanner();
     if(tab==="events") ecInit();
     if(tab==="cms")    cmsOpen();
+    if(tab==="photos") photosLoad();
   }
 }
 document.getElementById("tabQr").addEventListener("click", ()=>switchStaffTab("qr"));
 document.getElementById("tabEvents").addEventListener("click", ()=>switchStaffTab("events"));
 document.getElementById("tabCms").addEventListener("click", ()=>switchStaffTab("cms"));
+document.getElementById("tabPhotos").addEventListener("click", ()=>switchStaffTab("photos"));
 
 /* =========================================================
    ④-1 店内人数コントロール（store_status を更新）
@@ -1045,6 +1072,97 @@ async function cmsSave(){
     setMsg(cmsMsg,"保存に失敗しました。もう一度お試しください。","err");
   }
 }
+
+/* =========================================================
+   ④-4 写真管理（Supabase Storage「photos」）
+   ========================================================= */
+const PHOTO_BUCKET = "photos";
+const photoMsg  = document.getElementById("photoMsg");
+const photoGrid = document.getElementById("photoGrid");
+
+document.getElementById("photoInput").addEventListener("change", onPhotoPick);
+
+// 一覧を読み込んで表示
+async function photosLoad(){
+  photoGrid.innerHTML = '<div class="photo-empty">読み込み中…</div>';
+  try{
+    const { data, error } = await db.storage.from(PHOTO_BUCKET).list("", { limit:100, sortBy:{ column:"name", order:"asc" } });
+    if(error) throw error;
+    const files = (data||[]).filter(f=>f.name && f.id);  // フォルダ等を除外
+    if(files.length === 0){
+      photoGrid.innerHTML = '<div class="photo-empty">まだ写真がありません。「＋ 写真をアップロード」から追加してください。</div>';
+      return;
+    }
+    photoGrid.innerHTML = files.map(f=>{
+      const { data:{ publicUrl } } = db.storage.from(PHOTO_BUCKET).getPublicUrl(f.name);
+      return `<div class="photo-cell">
+        <img src="${publicUrl}" alt="">
+        <button class="photo-del" title="削除" onclick="photoDelete('${f.name.replace(/'/g,"\\'")}')">×</button>
+      </div>`;
+    }).join("");
+  }catch(e){
+    console.error(e);
+    photoGrid.innerHTML = '<div class="photo-empty">読み込みに失敗しました（バケットの作成・権限をご確認ください）。</div>';
+  }
+}
+
+// 写真を選択 → 縮小 → アップロード
+async function onPhotoPick(e){
+  const files = Array.from(e.target.files || []);
+  if(files.length === 0) return;
+  setMsg(photoMsg, `アップロード中… (0/${files.length})`, "");
+  let done = 0, ok = 0;
+  for(const file of files){
+    try{
+      const blob = await resizeImage(file, 1600, 0.82);
+      const name = Date.now() + "_" + Math.random().toString(36).slice(2,8) + ".jpg";
+      const { error } = await db.storage.from(PHOTO_BUCKET).upload(name, blob, { contentType:"image/jpeg", upsert:false });
+      if(error) throw error;
+      ok++;
+    }catch(err){ console.error(err); }
+    done++;
+    setMsg(photoMsg, `アップロード中… (${done}/${files.length})`, "");
+  }
+  e.target.value = "";
+  setMsg(photoMsg, ok===files.length ? `アップロード完了（${ok}枚）✓` : `${ok}/${files.length}枚をアップロードしました`, ok>0?"ok":"err");
+  photosLoad();
+}
+
+// 画像を縮小してJPEG化（容量を抑え、表示を速く）
+function resizeImage(file, maxSize, quality){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if(width > maxSize || height > maxSize){
+        if(width >= height){ height = Math.round(height * maxSize / width); width = maxSize; }
+        else { width = Math.round(width * maxSize / height); height = maxSize; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(b=> b ? resolve(b) : reject(new Error("blob failed")), "image/jpeg", quality);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error("image load failed")); };
+    img.src = url;
+  });
+}
+
+// 削除
+async function photoDelete(name){
+  if(!confirm("この写真を削除しますか？")) return;
+  try{
+    const { error } = await db.storage.from(PHOTO_BUCKET).remove([name]);
+    if(error) throw error;
+    photosLoad();
+  }catch(e){
+    console.error(e);
+    alert("削除に失敗しました。もう一度お試しください。");
+  }
+}
+window.photoDelete = photoDelete;
 
 /* =========================================================
    ④ 店舗スタッフ：QRスキャン → 更新

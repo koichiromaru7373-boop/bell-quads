@@ -160,6 +160,13 @@ input::placeholder{color:#7fa28d}
         <div class="bal"><div class="lab">有効マイル残高</div><div class="val"><span id="mMiles">0</span><small> pt</small></div></div>
         <div class="expire" id="mExpire" style="display:none"></div>
       </div>
+
+      <div id="tabCard" class="panel pad" style="display:none;margin-top:1.1rem">
+        <div class="eyebrow">♣ ただいまのお会計</div>
+        <div id="myOrders" style="margin-top:.6rem"></div>
+        <div class="totbar"><span class="tl">合計</span><span class="tv">¥<span id="myTotal">0</span></span></div>
+        <p class="tiny center">プレイ中の伝票です。精算が済むと表示は消えます。</p>
+      </div>
       <div class="center" style="margin-top:1.1rem">
         <div class="eyebrow">店頭でこのQRを提示</div>
         <div class="qrbox" id="qrBox"></div>
@@ -177,9 +184,9 @@ input::placeholder{color:#7fa28d}
 
   <section id="screen-staffpin" class="screen">
     <div class="pad">
-      <div class="hero"><div class="mk" style="background:linear-gradient(145deg,#e0a93f,#b87f25)">S</div><h1>スタッフモード</h1><p>マスターPINを入力</p></div>
+      <div class="hero"><div class="mk" style="background:linear-gradient(145deg,#e0a93f,#b87f25)">S</div><h1>スタッフモード</h1><p>ご自分のPINを入力</p></div>
       <div class="panel pad">
-        <label class="fld" for="staffPin">マスターPIN</label>
+        <label class="fld" for="staffPin">スタッフPIN</label>
         <input id="staffPin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off" />
         <div style="margin-top:1.2rem"><button class="btn btn-gold" id="btnStaffEnter">入室</button></div>
         <div class="msg" id="staffPinMsg"></div>
@@ -191,8 +198,8 @@ input::placeholder{color:#7fa28d}
 
   <section id="screen-staff" class="screen">
     <div class="staffbar">
-      <label for="staffSel">操作スタッフ</label>
-      <select id="staffSel"><option value="">選択してください</option></select>
+      <label>操作スタッフ</label>
+      <span id="staffWho" style="flex:1;font-weight:700;color:var(--cream)">—</span>
       <button class="btn btn-ghost" style="width:auto;padding:.45rem .8rem;font-size:.8rem" id="btnStaffExit">退室</button>
     </div>
     <div class="tabs">
@@ -308,7 +315,22 @@ async function enterMember(u){
   document.getElementById("mName").textContent=u.name;
   const box=document.getElementById("qrBox");box.innerHTML="";
   qrInst=new QRCode(box,{text:String(u.id),width:170,height:170,colorDark:"#0f3320",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.M});
-  await loadMile(u.id); await loadHist(u.id);
+  await loadMile(u.id); await loadHist(u.id); await loadActiveTab(u.id);
+}
+async function loadActiveTab(id){
+  const card=document.getElementById("tabCard");
+  try{
+    const {data:tabs}=await db.from("tabs").select("id").eq("user_id",id).eq("status","open").order("opened_at",{ascending:false}).limit(1);
+    if(!tabs||!tabs.length){card.style.display="none";return;}
+    const {data:ords}=await db.from("tab_orders").select("*").eq("tab_id",tabs[0].id).order("created_at",{ascending:true});
+    const list=ords||[];
+    const total=list.reduce((s,o)=>s+o.price*o.qty,0);
+    document.getElementById("myOrders").innerHTML=list.length
+      ? list.map(o=>'<div class="orow"><div class="on">'+esc(o.name)+(o.qty>1?' ×'+o.qty:'')+'</div><div class="op">¥'+yen(o.price*o.qty)+'</div></div>').join("")
+      : '<div class="empty">まだ注文はありません</div>';
+    document.getElementById("myTotal").textContent=yen(total);
+    card.style.display="block";
+  }catch(e){console.error(e);card.style.display="none";}
 }
 async function loadMile(id){
   try{
@@ -336,7 +358,9 @@ async function loadHist(id){
     }).join("");
   }catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}
 }
-document.getElementById("btnRefresh").addEventListener("click",async()=>{const id=localStorage.getItem(LS_USER);if(id){await loadMile(id);await loadHist(id);}});
+document.getElementById("btnRefresh").addEventListener("click",async()=>{const id=localStorage.getItem(LS_USER);if(id){await loadMile(id);await loadHist(id);await loadActiveTab(id);}});
+/* マイページ表示中は会計を自動更新（プレイ中の金額をライブ反映） */
+setInterval(()=>{const id=localStorage.getItem(LS_USER);if(id&&document.getElementById("screen-member").classList.contains("active"))loadActiveTab(id);},15000);
 document.getElementById("btnLogout").addEventListener("click",()=>{localStorage.removeItem(LS_USER);document.getElementById("loginName").value="";showScreen("screen-login");});
 
 /* ===== スタッフPIN ===== */
@@ -347,28 +371,28 @@ document.getElementById("staffPin").addEventListener("keydown",e=>{if(e.key==="E
 document.getElementById("btnStaffEnter").addEventListener("click",staffEnter);
 async function staffEnter(){
   const pin=document.getElementById("staffPin").value.trim();
-  if(pin!==MASTER_PIN){setMsg(staffPinMsg,"PINが違います","err");return;}
+  if(!pin){setMsg(staffPinMsg,"PINを入力してください","err");return;}
+  setMsg(staffPinMsg,"確認中…","");
+  if(pin===MASTER_PIN){currentStaff="管理者";afterStaffLogin();return;}
+  try{
+    const {data,error}=await db.from("staff").select("name").eq("pin",pin).limit(1);
+    if(error)throw error;
+    if(!data||!data.length){setMsg(staffPinMsg,"PINが違います","err");return;}
+    currentStaff=data[0].name;
+    afterStaffLogin();
+  }catch(e){console.error(e);setMsg(staffPinMsg,"接続エラー：設定をご確認ください","err");}
+}
+function afterStaffLogin(){
   document.getElementById("staffPin").value="";setMsg(staffPinMsg,"","");
+  document.getElementById("staffWho").textContent=currentStaff?currentStaff+" さん":"—";
   showScreen("screen-staff");
-  await loadStaffNames();
   switchTab("active");
 }
-document.getElementById("btnStaffExit").addEventListener("click",()=>{stopScanner();showScreen("screen-login");});
+document.getElementById("btnStaffExit").addEventListener("click",()=>{stopScanner();currentStaff="";showScreen("screen-login");});
 
-/* スタッフ名 */
+/* スタッフ名（PINでログインした本人） */
 let currentStaff="";
-async function loadStaffNames(){
-  const sel=document.getElementById("staffSel");
-  try{
-    const {data,error}=await db.from("staff").select("*").order("sort_order",{ascending:true});
-    if(error)throw error;
-    sel.innerHTML='<option value="">選択してください</option>'+(data||[]).map(s=>'<option value="'+esc(s.name)+'">'+esc(s.name)+'</option>').join("");
-    const saved=localStorage.getItem(LS_STAFF);
-    if(saved&&(data||[]).some(s=>s.name===saved)){sel.value=saved;currentStaff=saved;}
-  }catch(e){console.error(e);}
-}
-document.getElementById("staffSel").addEventListener("change",e=>{currentStaff=e.target.value;localStorage.setItem(LS_STAFF,currentStaff);});
-function requireStaff(){if(!currentStaff){alert("先に画面上部で「操作スタッフ」を選択してください");return false;}return true;}
+function requireStaff(){if(!currentStaff){alert("スタッフPINでログインし直してください");return false;}return true;}
 
 /* タブ切替 */
 function switchTab(t){

@@ -487,7 +487,7 @@ function renderGrid(){
     const dow = new Date(calYear, calMonth, d).getDay();
     const evs = monthEvents[key];
     const cls = ["cal-cell", dow===0?"sun":dow===6?"sat":"", evs?"has":"", key===today?"today":"", key===selectedDate?"sel":""].join(" ").trim();
-    const dot = evs ? `<span class="dot ${evs.length>1?"multi":""}"></span>` : "";
+    const dot = evs ? `<span class="dot ${evs.length>1?"multi":""}" style="background:${colorCss(evs[0].color)}"></span>` : "";
     const click = evs ? ` onclick="selectDate('${key}')"` : "";
     html += `<div class="${cls}"${click}>${d}${dot}</div>`;
   }
@@ -516,7 +516,7 @@ function selectDate(key){
     document.getElementById("calDetail").innerHTML = `<div class="dt-date">${label}</div><div class="cal-empty">この日の予定はありません。</div>`;
     return;
   }
-  const items = evs.map(ev=>`<div class="cal-event"><h3>${escapeHtml(ev.title)}</h3>${ev.description ? `<p>${escapeHtml(ev.description)}</p>` : ""}</div>`).join("");
+  const items = evs.map(ev=>`<div class="cal-event" style="border-left:3px solid ${colorCss(ev.color)};padding-left:.8rem"><h3>${escapeHtml(ev.title)}</h3>${ev.description ? `<p>${nl2br(ev.description)}</p>` : ""}</div>`).join("");
   document.getElementById("calDetail").innerHTML = `<div class="dt-date">${label}</div>${items}`;
 }
 window.selectDate = selectDate;
@@ -525,6 +525,8 @@ document.getElementById("calPrev").addEventListener("click", ()=>{ calMonth--; i
 document.getElementById("calNext").addEventListener("click", ()=>{ calMonth++; if(calMonth>11){ calMonth=0; calYear++; } selectedDate=null; loadMonth(); });
 
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function colorCss(v){ return v && v !== "" ? v : "#d4af37"; }
+function nl2br(s){ return escapeHtml(s).replace(/\n/g,"<br>"); }
 
 /* 編集テキスト（site_content）を読み込み、data-cms 要素へ反映 */
 let siteMap = {};

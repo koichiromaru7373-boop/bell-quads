@@ -99,6 +99,23 @@ header.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);
 .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
 .emblem-hero{width:min(420px,80vw);margin-inline:auto;display:block;filter:drop-shadow(0 12px 40px rgba(0,0,0,.6))}
 
+/* ヒーロー右側：ロゴ透かし＋今月のPICK UP */
+.hero-side{position:relative;display:flex;align-items:center;justify-content:center;min-height:300px}
+.hero-side .emblem-hero{transition:opacity .4s}
+.hero-side.has-pickup{display:block}
+.hero-side.has-pickup .emblem-hero{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:.13;pointer-events:none;filter:none}
+.pickup{position:relative;z-index:1;width:100%}
+.pickup-h{font-family:"Cinzel",serif;letter-spacing:.22em;text-transform:uppercase;color:var(--cream);font-size:.95rem;text-align:center;margin-bottom:1.1rem}
+.pickup-h span{color:var(--gold)}
+.pickup-list{display:flex;flex-direction:column;gap:.7rem}
+.pickup-card{display:flex;gap:.9rem;align-items:center;background:linear-gradient(160deg,rgba(20,16,9,.82),rgba(12,11,10,.82));border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:14px;padding:.8rem .95rem;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.pickup-date{flex:none;text-align:center;min-width:52px;color:var(--gold)}
+.pickup-date .d{font-family:"Cormorant Garamond",serif;font-weight:700;font-size:1.7rem;line-height:1}
+.pickup-date .m{font-size:.66rem;letter-spacing:.1em}
+.pickup-body{min-width:0}
+.pickup-body h4{font-size:1rem;font-weight:700;color:var(--cream);margin-bottom:.15rem;line-height:1.3}
+.pickup-body p{font-size:.78rem;color:var(--cream-dim);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
 .suit-divider{display:flex;gap:2.2rem;justify-content:center;align-items:center;padding:1.3rem 0;font-size:1.25rem;
   color:var(--gold);opacity:.85;border-block:1px solid var(--line-soft);margin-top:1.5rem;letter-spacing:.1em}
 
@@ -280,7 +297,13 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
       </div>
     </div>
     <div>
-      <div class="bq-logo emblem-hero" role="img" aria-label="Bell Quads Poker Room ロゴ" style="aspect-ratio:1/1"></div>
+      <div class="hero-side" id="heroSide">
+        <div class="bq-logo emblem-hero" id="heroLogo" role="img" aria-label="Bell Quads Poker Room ロゴ" style="aspect-ratio:1/1"></div>
+        <div class="pickup" id="pickupWrap" style="display:none">
+          <div class="pickup-h">今月の <span>PICK UP</span></div>
+          <div class="pickup-list" id="pickupList"></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="wrap"><div class="suit-divider"><span>♠</span><span>♥</span><span>♦</span><span>♣</span></div></div>
@@ -560,6 +583,43 @@ function applyOpenState(isOpen){
   }
 }
 loadSiteContent();
+
+/* 今月のPICK UP（is_pickup の今日以降イベントをヒーローに表示） */
+async function loadPickup(){
+  const side = document.getElementById("heroSide");
+  const wrap = document.getElementById("pickupWrap");
+  const list = document.getElementById("pickupList");
+  if(!side || !wrap || !list) return;
+  try{
+    const today = todayStr();
+    const { data, error } = await db.from("events").select("*")
+      .eq("is_pickup", true).gte("date", today)
+      .order("date", { ascending:true }).limit(5);
+    if(error) throw error;
+    if(!data || data.length === 0) return;   // Pickupが無ければロゴのまま
+
+    const WK = ["日","月","火","水","木","金","土"];
+    list.innerHTML = data.map(ev=>{
+      const d = new Date(ev.date+"T00:00:00");
+      return `<div class="pickup-card" style="border-left-color:${colorCss(ev.color)}">
+        <div class="pickup-date">
+          <div class="d">${d.getDate()}</div>
+          <div class="m">${d.getMonth()+1}月(${WK[d.getDay()]})</div>
+        </div>
+        <div class="pickup-body">
+          <h4>${escapeHtml(ev.title)}</h4>
+          ${ev.description ? `<p>${nl2br(ev.description)}</p>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+    side.classList.add("has-pickup");
+    wrap.style.display = "block";
+  }catch(e){
+    console.error(e);
+    /* 失敗時はロゴ表示のまま */
+  }
+}
+loadPickup();
 
 (function initCalendar(){ const t = new Date(); calYear = t.getFullYear(); calMonth = t.getMonth(); renderDow(); loadMonth(); })();
 

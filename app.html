@@ -392,7 +392,7 @@ input::placeholder{color:#8aa394}
   <section id="screen-staff" class="screen">
     <div class="pad" style="display:flex;flex-direction:column;flex:1">
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <div><span class="eyebrow">STAFF</span><h2 class="h-display" style="font-size:1.4rem">スタッフモード</h2></div>
+        <div><span class="eyebrow">STAFF</span><h2 class="h-display" style="font-size:1.4rem">スタッフモード</h2><span class="tiny" id="staffWho" style="color:var(--gold);font-weight:700"></span></div>
         <button class="btn btn-ghost" style="width:auto;padding:.5rem 1rem;font-size:.85rem" id="btnStaffExit">退室</button>
       </div>
 
@@ -741,11 +741,33 @@ document.getElementById("btnStaffBack").addEventListener("click", ()=>showScreen
 document.getElementById("staffPin").addEventListener("keydown", e=>{ if(e.key==="Enter") staffEnter(); });
 document.getElementById("btnStaffEnter").addEventListener("click", staffEnter);
 
-function staffEnter(){
+let currentStaffName = "";
+
+async function staffEnter(){
   const pin = document.getElementById("staffPin").value.trim();
-  if(pin !== MASTER_PIN){ setMsg(staffPinMsg,"PINが違います","err"); return; }
+  if(!pin){ setMsg(staffPinMsg,"PINを入力してください","err"); return; }
+  setMsg(staffPinMsg,"確認中…","");
+
+  // マスターPINは管理者として常にログイン可（緊急用）
+  if(pin === MASTER_PIN){ currentStaffName = "管理者"; enterStaffMode(); return; }
+
+  try{
+    const { data, error } = await db.from("staff").select("name").eq("pin", pin).limit(1);
+    if(error) throw error;
+    if(!data || data.length === 0){ setMsg(staffPinMsg,"PINが違います","err"); return; }
+    currentStaffName = data[0].name;
+    enterStaffMode();
+  }catch(e){
+    console.error(e);
+    setMsg(staffPinMsg,"接続エラー：設定をご確認ください","err");
+  }
+}
+
+function enterStaffMode(){
   document.getElementById("staffPin").value = "";
   setMsg(staffPinMsg,"","");
+  const who = document.getElementById("staffWho");
+  if(who) who.textContent = currentStaffName ? "　" + currentStaffName + " さん" : "";
   showScreen("screen-staff");
   switchStaffTab("qr");   // 既定はQRスキャン
   loadHeadCount();        // 店内人数を読み込み
@@ -945,7 +967,6 @@ const CMS_FIELDS = [
     { k:"access_near",   l:"最寄り",     t:"input" },
     { k:"access_hours",  l:"営業時間",   t:"input" },
     { k:"access_closed", l:"定休",       t:"input" },
-    { k:"access_tel",    l:"電話番号",   t:"input" },
     { k:"affiliate1",    l:"系列店 1",   t:"input" },
     { k:"affiliate2",    l:"系列店 2",   t:"input" },
   ]},
@@ -1172,7 +1193,7 @@ async function applyTransaction(){
     // 2) history に履歴を追加（同時に記録）
     const { error: hErr } = await db
       .from("history")
-      .insert({ user_id: currentTarget.id, action: selectedAction, amount: amount });
+      .insert({ user_id: currentTarget.id, action: selectedAction, amount: amount, staff_name: currentStaffName || null });
     if(hErr) throw hErr;
 
     const sign = selectedAction === "チャージ" ? "＋" : "－";

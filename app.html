@@ -274,7 +274,7 @@ input::placeholder{color:#8aa394}
 
       <div class="panel pad">
         <label class="fld" for="loginName">お名前</label>
-        <input id="loginName" type="text" placeholder="例）テスト太郎" autocomplete="off" />
+        <input id="loginName" type="text" placeholder="お名前" autocomplete="off" />
 
         <label class="fld" for="loginPin">PIN（4桁）</label>
         <input id="loginPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off" />
@@ -307,7 +307,7 @@ input::placeholder{color:#8aa394}
 
       <div class="panel pad">
         <label class="fld" for="regName">プレイヤーネーム</label>
-        <input id="regName" type="text" maxlength="20" placeholder="例）テスト太郎" autocomplete="off" />
+        <input id="regName" type="text" maxlength="20" placeholder="お名前" autocomplete="off" />
 
         <label class="fld" for="regPin">暗証番号（PIN・4桁）</label>
         <input id="regPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off" />
@@ -529,8 +529,8 @@ input::placeholder{color:#8aa394}
 /* =========================================================
    ★★★ Supabase 接続設定（ここを書き換えてください）★★★
    ========================================================= */
-const SUPABASE_URL = "https://dnnctulubrawypwgwgdo.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
+const SUPABASE_URL      = "https://dnnctulubrawypwgwgdo.supabase.co"; // ← あなたの Project URL
+const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M"; // ← あなたの anon public key
 const MASTER_PIN        = "202046";                              // ← 店舗スタッフ用マスターPIN（6桁）
 const EDITOR_PIN        = "1111";                                // ← サイト編集者パスコード（変更してください）
 /* ========================================================= */
@@ -948,7 +948,6 @@ const CMS_FIELDS = [
     { k:"access_tel",    l:"電話番号",   t:"input" },
     { k:"affiliate1",    l:"系列店 1",   t:"input" },
     { k:"affiliate2",    l:"系列店 2",   t:"input" },
-    { k:"access_note",   l:"注記",       t:"area" },
   ]},
   { sec:"ログイン誘導バナー", items:[
     { k:"cta_h",   l:"見出し",   t:"input" },

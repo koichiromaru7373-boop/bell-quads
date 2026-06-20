@@ -182,6 +182,18 @@ input::placeholder{color:#8aa394}
 .hc-num{width:62px;text-align:center;margin:0;padding:.55rem .2rem;font-family:"Playfair Display",serif;font-weight:900;font-size:1.4rem;background:rgba(0,0,0,.3);border:1px solid var(--felt-line);border-radius:10px;color:var(--gold);-moz-appearance:textfield}
 .hc-num::-webkit-outer-spin-button,.hc-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
+/* ---------- 営業ステータス トグル ---------- */
+.open-toggle{display:flex;align-items:center;gap:.7rem;width:100%;margin-top:.7rem;cursor:pointer;
+  border:1px solid var(--felt-line);border-radius:14px;padding:.85rem 1.1rem;font-family:inherit;
+  background:rgba(46,204,113,.12);color:var(--cream);transition:all .15s;text-align:left}
+.open-toggle:active{transform:scale(.99)}
+.open-toggle .ot-dot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.open-toggle .ot-main{font-weight:700;font-size:1rem}
+.open-toggle .ot-sub{margin-left:auto;font-size:.74rem;color:var(--cream-dim)}
+.open-toggle.is-closed{background:rgba(120,120,120,.14);border-color:#777}
+.open-toggle.is-closed .ot-dot{background:#888;box-shadow:none}
+.open-toggle.is-closed .ot-main{color:#cfcfcf}
+
 /* ---------- スタッフ タブ ---------- */
 .staff-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin:1rem 0 .2rem}
 .staff-tab{padding:.7rem .3rem;border-radius:12px 12px 0 0;border:1px solid var(--felt-line);border-bottom:none;background:rgba(0,0,0,.2);color:var(--cream-dim);font-weight:700;cursor:pointer;font-family:inherit;font-size:.86rem;transition:all .15s}
@@ -393,6 +405,13 @@ input::placeholder{color:#8aa394}
           <button class="hc-btn plus" id="hcPlus" aria-label="1人増やす">＋</button>
         </div>
       </div>
+
+      <!-- 営業ステータス（ワンタップ切替） -->
+      <button class="open-toggle" id="openToggle">
+        <span class="ot-dot" id="otDot"></span>
+        <span class="ot-main" id="otMain">読み込み中…</span>
+        <span class="ot-sub" id="otSub"></span>
+      </button>
 
       <!-- タブ -->
       <div class="staff-tabs">
@@ -730,6 +749,7 @@ function staffEnter(){
   showScreen("screen-staff");
   switchStaffTab("qr");   // 既定はQRスキャン
   loadHeadCount();        // 店内人数を読み込み
+  loadOpenStatus();       // 営業ステータスを読み込み
 }
 
 document.getElementById("btnStaffExit").addEventListener("click", ()=>{ stopScanner(); showScreen("screen-login"); });
@@ -810,11 +830,64 @@ hcMinus.addEventListener("click", ()=> saveHeadCount((parseInt(hcNum.value,10)||
 hcNum.addEventListener("change", ()=> saveHeadCount(hcNum.value));
 
 /* =========================================================
+   ④-1b 営業ステータス（ワンタップ切替）
+   ========================================================= */
+const openToggle = document.getElementById("openToggle");
+let currentOpen = true;
+let openSaving = false;
+
+function renderOpenToggle(isOpen){
+  currentOpen = (isOpen !== false);
+  if(currentOpen){
+    openToggle.classList.remove("is-closed");
+    document.getElementById("otMain").textContent = "営業中";
+    document.getElementById("otSub").textContent  = "タップで「本日休業」に";
+  }else{
+    openToggle.classList.add("is-closed");
+    document.getElementById("otMain").textContent = "本日休業";
+    document.getElementById("otSub").textContent  = "タップで「営業中」に";
+  }
+}
+
+async function loadOpenStatus(){
+  try{
+    const { data, error } = await db.from("store_status").select("is_open").eq("id",1).limit(1);
+    if(error) throw error;
+    renderOpenToggle(data && data[0] ? data[0].is_open : true);
+  }catch(e){
+    console.error(e);
+    document.getElementById("otMain").textContent = "状態を取得できません";
+  }
+}
+
+openToggle.addEventListener("click", async ()=>{
+  if(openSaving) return;
+  const next = !currentOpen;
+  openSaving = true;
+  renderOpenToggle(next);                        // 先に見た目を更新
+  document.getElementById("otSub").textContent = "保存中…";
+  try{
+    const { error } = await db.from("store_status")
+      .update({ is_open: next, updated_at:new Date().toISOString() })
+      .eq("id",1);
+    if(error) throw error;
+    renderOpenToggle(next);                       // サブ文を戻す
+  }catch(e){
+    console.error(e);
+    renderOpenToggle(!next);                       // 失敗したら元に戻す
+    document.getElementById("otSub").textContent = "保存に失敗しました";
+  }finally{
+    openSaving = false;
+  }
+});
+
+/* =========================================================
    ④-3 サイト編集（site_content を編集 ＝ 編集者ログイン）
    ========================================================= */
 const CMS_FIELDS = [
   { sec:"ヒーロー（最上部）", items:[
-    { k:"hero_open",   l:"営業ステータス表示",        t:"input" },
+    { k:"hero_open",   l:"営業ステータス表示（営業中）", t:"input" },
+    { k:"hero_closed", l:"営業ステータス表示（休業）",   t:"input" },
     { k:"hero_title1", l:"キャッチコピー 1行目",      t:"input" },
     { k:"hero_title2", l:"キャッチコピー（ゴールド強調）", t:"input" },
     { k:"hero_title3", l:"キャッチコピー 末尾",        t:"input" },

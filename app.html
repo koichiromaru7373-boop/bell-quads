@@ -175,6 +175,13 @@ input::placeholder{color:#7fa28d}
 .st-item{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;border-radius:11px;background:rgba(0,0,0,.2);border:1px solid var(--line);margin-bottom:.5rem}
 .st-item .snm{flex:1;font-weight:700}.st-item .spin{color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
 .st-item .mini{padding:.4rem .7rem;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--cream);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit}
+
+/* 写真管理 */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:1rem}
+.photo-cell{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:rgba(0,0,0,.2)}
+.photo-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-del{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:8px;border:none;cursor:pointer;background:rgba(224,91,74,.92);color:#fff;font-size:1rem;font-weight:900;display:grid;place-items:center}
+.photo-empty{grid-column:1/-1;text-align:center;color:var(--dim);font-size:.88rem;padding:1.2rem 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -373,6 +380,7 @@ input::placeholder{color:#7fa28d}
       <button class="tab" id="aTabPL">収支</button>
       <button class="tab" id="aTabStaff">スタッフ</button>
       <button class="tab" id="aTabCms">サイト編集</button>
+      <button class="tab" id="aTabPhoto">写真</button>
     </div>
 
     <!-- イベント管理 -->
@@ -436,6 +444,17 @@ input::placeholder{color:#7fa28d}
         <div id="cmsFields"></div>
         <button class="btn btn-gold" id="cmsSave" style="margin-top:1rem">すべて保存してサイトに反映</button>
         <div class="msg" id="cmsMsg"></div>
+      </div>
+    </div>
+
+    <!-- 写真管理 -->
+    <div class="tpanel" id="apanel-photo">
+      <div class="pad">
+        <p class="tiny center" style="margin:.2rem 0 .6rem">店内写真をアップすると、トップページの「はじめての方へ」でスライドショー表示されます。</p>
+        <label class="btn btn-gold" for="photoInput" style="cursor:pointer">＋ 写真をアップロード</label>
+        <input id="photoInput" type="file" accept="image/*" multiple style="display:none" />
+        <div class="msg" id="photoMsg"></div>
+        <div class="photo-grid" id="photoGrid"><div class="empty">読み込み中…</div></div>
       </div>
     </div>
   </section>
@@ -847,13 +866,14 @@ document.getElementById("btnAdminEnter").addEventListener("click",adminEnter);
 function adminEnter(){const pin=document.getElementById("adminPin").value.trim();if(pin!==ADMIN_PIN){setMsg(adminPinMsg,"PINが違います","err");return;}document.getElementById("adminPin").value="";setMsg(adminPinMsg,"","");showScreen("screen-admin");adminTab("event");}
 document.getElementById("btnAdminExit").addEventListener("click",()=>showScreen("screen-login"));
 function adminTab(t){
-  [["aTabEvent","apanel-event","event"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
-  if(t==="event")ecInit();else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();
+  [["aTabEvent","apanel-event","event"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
+  if(t==="event")ecInit();else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();
 }
 document.getElementById("aTabEvent").addEventListener("click",()=>adminTab("event"));
 document.getElementById("aTabPL").addEventListener("click",()=>adminTab("pl"));
 document.getElementById("aTabStaff").addEventListener("click",()=>adminTab("staff"));
 document.getElementById("aTabCms").addEventListener("click",()=>adminTab("cms"));
+document.getElementById("aTabPhoto").addEventListener("click",()=>adminTab("photo"));
 
 /* ---- イベント管理 ---- */
 const EVENT_COLORS=[{v:"",css:"#f4d03f"},{v:"#e74c3c",css:"#e74c3c"},{v:"#e67e22",css:"#e67e22"},{v:"#2ecc71",css:"#2ecc71"},{v:"#3498db",css:"#3498db"},{v:"#9b59b6",css:"#9b59b6"},{v:"#ff5fa2",css:"#ff5fa2"}];
@@ -1030,6 +1050,38 @@ document.getElementById("cmsSave").addEventListener("click",async()=>{
   const btn=document.getElementById("cmsSave");btn.disabled=true;setMsg(cmsMsg2,"保存中…","");
   try{const r=await db.from("site_content").upsert(rows,{onConflict:"key"});if(r.error)throw r.error;btn.disabled=false;setMsg(cmsMsg2,"保存しました ✓ 公式サイトを再読み込みで反映","ok");}catch(e){console.error(e);btn.disabled=false;setMsg(cmsMsg2,"保存に失敗しました","err");}
 });
+
+/* ---- 写真管理（Storage「photos」）---- */
+const PHOTO_BUCKET="photos";const photoMsg=document.getElementById("photoMsg");const photoGrid=document.getElementById("photoGrid");
+document.getElementById("photoInput").addEventListener("change",onPhotoPick);
+async function photosLoad(){
+  photoGrid.innerHTML='<div class="photo-empty">読み込み中…</div>';
+  try{
+    const r=await db.storage.from(PHOTO_BUCKET).list("",{limit:100,sortBy:{column:"name",order:"asc"}});
+    if(r.error)throw r.error;
+    const files=(r.data||[]).filter(f=>f.name&&f.id);
+    if(!files.length){photoGrid.innerHTML='<div class="photo-empty">まだ写真がありません。「＋写真をアップロード」から追加してください。</div>';return;}
+    photoGrid.innerHTML=files.map(f=>{const u=db.storage.from(PHOTO_BUCKET).getPublicUrl(f.name).data.publicUrl;return '<div class="photo-cell"><img src="'+u+'" alt=""><button class="photo-del" onclick="photoDelete(\''+f.name.replace(/'/g,"\\'")+'\')">×</button></div>';}).join("");
+  }catch(e){console.error(e);photoGrid.innerHTML='<div class="photo-empty">読み込み失敗（バケット作成・権限をご確認ください）</div>';}
+}
+async function onPhotoPick(e){
+  const files=Array.from(e.target.files||[]);if(!files.length)return;
+  setMsg(photoMsg,"アップロード中… (0/"+files.length+")","");
+  let done=0,ok=0;
+  for(const file of files){
+    try{const blob=await resizeImage(file,1600,0.82);const name=Date.now()+"_"+Math.random().toString(36).slice(2,8)+".jpg";const r=await db.storage.from(PHOTO_BUCKET).upload(name,blob,{contentType:"image/jpeg",upsert:false});if(r.error)throw r.error;ok++;}catch(err){console.error(err);}
+    done++;setMsg(photoMsg,"アップロード中… ("+done+"/"+files.length+")","");
+  }
+  e.target.value="";setMsg(photoMsg,ok===files.length?"アップロード完了（"+ok+"枚）✓":ok+"/"+files.length+"枚をアップロードしました",ok>0?"ok":"err");
+  photosLoad();
+}
+function resizeImage(file,maxSize,quality){
+  return new Promise((resolve,reject)=>{const img=new Image();const url=URL.createObjectURL(file);
+    img.onload=()=>{URL.revokeObjectURL(url);let w=img.width,h=img.height;if(w>maxSize||h>maxSize){if(w>=h){h=Math.round(h*maxSize/w);w=maxSize;}else{w=Math.round(w*maxSize/h);h=maxSize;}}const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);c.toBlob(b=>b?resolve(b):reject(new Error("blob")),"image/jpeg",quality);};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("img"));};img.src=url;});
+}
+async function photoDelete(name){if(!confirm("この写真を削除しますか？"))return;try{const r=await db.storage.from(PHOTO_BUCKET).remove([name]);if(r.error)throw r.error;photosLoad();}catch(e){console.error(e);alert("削除に失敗しました");}}
+window.photoDelete=photoDelete;
 
 
 /* ===== 起動 ===== */

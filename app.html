@@ -270,6 +270,10 @@ textarea:focus{border-color:var(--gold)}
 .tmpl-item .mini.del:hover{border-color:var(--red);color:#ff9b8a}
 .tmpl-item .mini.edit:hover{border-color:var(--gold);color:var(--gold)}
 
+/* Pickup トグル */
+.pickup-toggle{width:100%;margin-top:.4rem;padding:.8rem;border-radius:12px;border:1px solid var(--felt-line);background:rgba(0,0,0,.2);color:var(--cream-dim);font-weight:700;cursor:pointer;font-family:inherit;font-size:.95rem;transition:all .15s}
+.pickup-toggle.on{background:rgba(244,207,71,.15);border-color:var(--gold);color:var(--gold)}
+
 /* ---------- サイト編集 ---------- */
 .cms-group{margin-top:1rem}
 .cms-group .cms-gh{font-family:"Playfair Display",serif;font-weight:900;color:var(--gold);font-size:1.05rem;padding-bottom:.4rem;border-bottom:1px solid var(--felt-line);margin-bottom:.6rem}
@@ -526,6 +530,9 @@ textarea:focus{border-color:var(--gold)}
 
           <label class="fld">カレンダーの色（目立たせる）</label>
           <div class="color-row" id="ecColors"></div>
+
+          <label class="fld">今月の PICK UP に表示</label>
+          <button type="button" class="pickup-toggle" id="ecPickup">表示しない</button>
 
           <div class="btn-row">
             <button class="btn btn-ghost" id="ecCancel">キャンセル</button>
@@ -1409,6 +1416,14 @@ function nl2br(s){ return esc(s).replace(/\n/g,"<br>"); }
 
 let ecTemplatesData = [];     // テンプレート一覧
 let ecSelectedColor = "";     // イベントフォームで選択中の色
+let ecSelectedPickup = false; // イベントフォームのPickup表示
+
+function renderPickupToggle(){
+  const b = document.getElementById("ecPickup");
+  b.classList.toggle("on", ecSelectedPickup);
+  b.textContent = ecSelectedPickup ? "★ PICK UP に表示中" : "表示しない";
+}
+document.getElementById("ecPickup").addEventListener("click", ()=>{ ecSelectedPickup = !ecSelectedPickup; renderPickupToggle(); });
 
 /* 色スウォッチを描画（container に並べ、選択で onPick(value) を呼ぶ） */
 function renderColorRow(containerId, selected, onPickName){
@@ -1536,8 +1551,10 @@ function ecOpenAdd(){
   document.getElementById("ecTitleInput").value = "";
   document.getElementById("ecDescInput").value = "";
   ecSelectedColor = "";
+  ecSelectedPickup = false;
   renderEcTemplateButtons();
   renderColorRow("ecColors", ecSelectedColor, "ecPickColor");
+  renderPickupToggle();
   setMsg(ecMsg,"","");
   document.getElementById("ecForm").style.display = "block";
   document.getElementById("ecTitleInput").focus();
@@ -1579,8 +1596,10 @@ function ecEdit(id){
   document.getElementById("ecTitleInput").value = ev.title || "";
   document.getElementById("ecDescInput").value = ev.description || "";
   ecSelectedColor = ev.color || "";
+  ecSelectedPickup = !!ev.is_pickup;
   renderEcTemplateButtons();
   renderColorRow("ecColors", ecSelectedColor, "ecPickColor");
+  renderPickupToggle();
   setMsg(ecMsg,"","");
   document.getElementById("ecForm").style.display = "block";
   document.getElementById("ecTitleInput").focus();
@@ -1603,11 +1622,11 @@ async function ecSave(){
   try{
     if(ecEditingId){
       const { error } = await db.from("events")
-        .update({ title:title, description:desc, color:ecSelectedColor || null }).eq("id", ecEditingId);
+        .update({ title:title, description:desc, color:ecSelectedColor || null, is_pickup:ecSelectedPickup }).eq("id", ecEditingId);
       if(error) throw error;
     }else{
       const { error } = await db.from("events")
-        .insert({ date:ecSelected, title:title, description:desc, color:ecSelectedColor || null });
+        .insert({ date:ecSelected, title:title, description:desc, color:ecSelectedColor || null, is_pickup:ecSelectedPickup });
       if(error) throw error;
     }
     btn.disabled = false;

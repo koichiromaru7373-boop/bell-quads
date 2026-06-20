@@ -247,6 +247,29 @@ input::placeholder{color:#8aa394}
 .ec-none{color:var(--cream-dim);font-size:.85rem;text-align:center;padding:1rem 0}
 .ec-formdate{font-family:"Playfair Display",serif;font-weight:900;color:var(--gold);font-size:1.05rem;margin-top:.2rem}
 
+/* テキストエリア（イベント・テンプレート） */
+textarea{width:100%;margin-top:.4rem;padding:.85rem 1rem;border-radius:12px;border:1px solid var(--felt-line);background:rgba(0,0,0,.25);color:var(--cream);font-size:1rem;font-family:inherit;outline:none;resize:vertical;line-height:1.6;min-height:44px}
+textarea:focus{border-color:var(--gold)}
+
+/* テンプレートのボタン（フォーム内） */
+.tmpl-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.4rem}
+.tmpl-btn{padding:.5rem .8rem;border-radius:999px;border:1px solid var(--felt-line);background:rgba(0,0,0,.2);color:var(--cream);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:.45rem}
+.tmpl-btn:active{transform:scale(.97)}
+.tmpl-btn .sw{width:10px;height:10px;border-radius:50%;flex:none}
+
+/* 色スウォッチ */
+.color-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.4rem}
+.color-sw{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.15);cursor:pointer;position:relative;display:grid;place-items:center;font-size:.62rem;color:rgba(255,255,255,.85);font-weight:700}
+.color-sw.sel{border-color:var(--cream);box-shadow:0 0 0 2px var(--felt-deep),0 0 0 4px var(--gold)}
+
+/* テンプレート管理リスト */
+.tmpl-item{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;border:1px solid var(--felt-line);border-radius:12px;background:rgba(0,0,0,.2);margin-bottom:.5rem}
+.tmpl-item .sw{width:12px;height:12px;border-radius:50%;flex:none}
+.tmpl-item .nm{font-weight:700;font-size:.92rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmpl-item .mini{padding:.4rem .7rem;border-radius:9px;border:1px solid var(--felt-line);background:transparent;color:var(--cream);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit}
+.tmpl-item .mini.del:hover{border-color:var(--red);color:#ff9b8a}
+.tmpl-item .mini.edit:hover{border-color:var(--gold);color:var(--gold)}
+
 /* ---------- サイト編集 ---------- */
 .cms-group{margin-top:1rem}
 .cms-group .cms-gh{font-family:"Playfair Display",serif;font-weight:900;color:var(--gold);font-size:1.05rem;padding-bottom:.4rem;border-bottom:1px solid var(--felt-line);margin-bottom:.6rem}
@@ -492,17 +515,45 @@ input::placeholder{color:#8aa394}
           <div class="eyebrow" id="ecFormTitle">イベントを追加</div>
           <div class="ec-formdate" id="ecFormDate">—</div>
 
+          <label class="fld">テンプレートから入力（タップで反映）</label>
+          <div class="tmpl-row" id="ecTemplates"></div>
+
           <label class="fld" for="ecTitleInput">タイトル</label>
           <input id="ecTitleInput" type="text" maxlength="40" placeholder="例）月例メインイベント" />
 
-          <label class="fld" for="ecDescInput">説明（任意）</label>
-          <input id="ecDescInput" type="text" maxlength="120" placeholder="例）賞金プール大型保証。" />
+          <label class="fld" for="ecDescInput">説明（任意・改行OK）</label>
+          <textarea id="ecDescInput" rows="4" placeholder="例）スタート 18:30 ／ 受付終了 21:00"></textarea>
+
+          <label class="fld">カレンダーの色（目立たせる）</label>
+          <div class="color-row" id="ecColors"></div>
 
           <div class="btn-row">
             <button class="btn btn-ghost" id="ecCancel">キャンセル</button>
             <button class="btn btn-gold" id="ecSave">保存する</button>
           </div>
           <div class="msg" id="ecMsg"></div>
+        </div>
+
+        <!-- テンプレート管理 -->
+        <div style="margin-top:1.4rem">
+          <button class="btn btn-ghost" id="tmplToggle" type="button">テンプレート管理を開く ▾</button>
+        </div>
+        <div id="tmplPanel" style="display:none;margin-top:.8rem">
+          <div id="tmplList"></div>
+          <div class="panel pad" style="margin-top:.8rem">
+            <div class="eyebrow" id="tmplFormTitle">テンプレートを追加</div>
+            <label class="fld" for="tmplName">テンプレート名（＝イベント名）</label>
+            <input id="tmplName" type="text" maxlength="40" placeholder="例）プライズ50%保証トナメ" />
+            <label class="fld" for="tmplDesc">内容（改行OK）</label>
+            <textarea id="tmplDesc" rows="4" placeholder="スタート 18:30 ／ ENTRY ¥5,000 …"></textarea>
+            <label class="fld">色</label>
+            <div class="color-row" id="tmplColors"></div>
+            <div class="btn-row">
+              <button class="btn btn-ghost" id="tmplCancel">クリア</button>
+              <button class="btn btn-gold" id="tmplSave">保存</button>
+            </div>
+            <div class="msg" id="tmplMsg"></div>
+          </div>
         </div>
       </div>
 
@@ -1342,6 +1393,33 @@ function ecYmd(y,m,d){ return `${y}-${String(m+1).padStart(2,"0")}-${String(d).p
 function ecTodayStr(){ const t=new Date(); return ecYmd(t.getFullYear(),t.getMonth(),t.getDate()); }
 const ecMsg = document.getElementById("ecMsg");
 
+/* イベントの色パレット（先頭は「標準＝ゴールド」） */
+const EVENT_COLORS = [
+  { v:"",        label:"標準", css:"#d4af37" },
+  { v:"#e74c3c", label:"赤",   css:"#e74c3c" },
+  { v:"#e67e22", label:"橙",   css:"#e67e22" },
+  { v:"#f1c40f", label:"黄",   css:"#f1c40f" },
+  { v:"#2ecc71", label:"緑",   css:"#2ecc71" },
+  { v:"#3498db", label:"青",   css:"#3498db" },
+  { v:"#9b59b6", label:"紫",   css:"#9b59b6" },
+  { v:"#ff5fa2", label:"桃",   css:"#ff5fa2" },
+];
+function colorCss(v){ return v && v !== "" ? v : "#d4af37"; }
+function nl2br(s){ return esc(s).replace(/\n/g,"<br>"); }
+
+let ecTemplatesData = [];     // テンプレート一覧
+let ecSelectedColor = "";     // イベントフォームで選択中の色
+
+/* 色スウォッチを描画（container に並べ、選択で onPick(value) を呼ぶ） */
+function renderColorRow(containerId, selected, onPickName){
+  const el = document.getElementById(containerId);
+  el.innerHTML = EVENT_COLORS.map(c=>{
+    const sel = (c.v === selected) ? " sel" : "";
+    const txt = c.v === "" ? "標準" : "";
+    return `<div class="color-sw${sel}" style="background:${c.css}" title="${c.label}" onclick="${onPickName}('${c.v}')">${txt}</div>`;
+  }).join("");
+}
+
 function ecInit(){
   // タブを開くたびに最新を読み込む（初回は今日の月）
   if(!ecInited){
@@ -1355,7 +1433,21 @@ function ecInit(){
     ecInited = true;
   }
   ecHideForm();
+  loadEcTemplates();
   ecLoadMonth();
+}
+
+/* テンプレート一覧を読み込み（フォームのボタンと管理リストに反映） */
+async function loadEcTemplates(){
+  try{
+    const { data, error } = await db.from("event_templates").select("*").order("sort_order",{ascending:true});
+    if(error) throw error;
+    ecTemplatesData = data || [];
+  }catch(e){
+    console.error(e);
+    ecTemplatesData = [];
+  }
+  renderTmplList();
 }
 
 async function ecLoadMonth(){
@@ -1396,7 +1488,7 @@ function ecRenderGrid(){
     const has = ecEvents[key];
     const cls = ["cal-cell", dow===0?"sun":dow===6?"sat":"", has?"has":"",
       key===today?"today":"", key===ecSelected?"sel":""].join(" ").trim();
-    const dot = has ? `<span class="dot"></span>` : "";
+    const dot = has ? `<span class="dot" style="background:${colorCss(has[0].color)}"></span>` : "";
     html += `<div class="${cls}" onclick="ecSelectDate('${key}')">${d}${dot}</div>`;
   }
   grid.innerHTML = html;
@@ -1419,9 +1511,9 @@ function ecRenderDay(){
     list = '<div class="ec-none">この日の予定はありません。</div>';
   }else{
     list = evs.map(ev=>`
-      <div class="ec-item">
+      <div class="ec-item" style="border-left:4px solid ${colorCss(ev.color)}">
         <h4>${esc(ev.title)}</h4>
-        ${ev.description ? `<p>${esc(ev.description)}</p>` : ""}
+        ${ev.description ? `<p>${nl2br(ev.description)}</p>` : ""}
         <div class="row">
           <button class="mini edit" onclick="ecEdit('${ev.id}')">編集</button>
           <button class="mini del" onclick="ecDelete('${ev.id}')">削除</button>
@@ -1443,11 +1535,38 @@ function ecOpenAdd(){
   document.getElementById("ecFormDate").textContent = `${d.getMonth()+1}月${d.getDate()}日（${EC_WEEK[d.getDay()]}）`;
   document.getElementById("ecTitleInput").value = "";
   document.getElementById("ecDescInput").value = "";
+  ecSelectedColor = "";
+  renderEcTemplateButtons();
+  renderColorRow("ecColors", ecSelectedColor, "ecPickColor");
   setMsg(ecMsg,"","");
   document.getElementById("ecForm").style.display = "block";
   document.getElementById("ecTitleInput").focus();
 }
 window.ecOpenAdd = ecOpenAdd;
+
+/* テンプレート選択ボタンを描画 */
+function renderEcTemplateButtons(){
+  const el = document.getElementById("ecTemplates");
+  if(ecTemplatesData.length === 0){ el.innerHTML = '<span class="tiny">テンプレート未登録（下の「テンプレート管理」で追加できます）</span>'; return; }
+  el.innerHTML = ecTemplatesData.map((t,i)=>
+    `<button type="button" class="tmpl-btn" onclick="ecApplyTemplate(${i})"><span class="sw" style="background:${colorCss(t.color)}"></span>${esc(t.name)}</button>`
+  ).join("");
+}
+
+/* テンプレートをフォームに反映 */
+function ecApplyTemplate(i){
+  const t = ecTemplatesData[i];
+  if(!t) return;
+  document.getElementById("ecTitleInput").value = t.name || "";
+  document.getElementById("ecDescInput").value  = t.description || "";
+  ecSelectedColor = t.color || "";
+  renderColorRow("ecColors", ecSelectedColor, "ecPickColor");
+}
+window.ecApplyTemplate = ecApplyTemplate;
+
+/* 色を選択 */
+function ecPickColor(v){ ecSelectedColor = v; renderColorRow("ecColors", ecSelectedColor, "ecPickColor"); }
+window.ecPickColor = ecPickColor;
 
 /* 編集フォームを開く */
 function ecEdit(id){
@@ -1459,6 +1578,9 @@ function ecEdit(id){
   document.getElementById("ecFormDate").textContent = `${d.getMonth()+1}月${d.getDate()}日（${EC_WEEK[d.getDay()]}）`;
   document.getElementById("ecTitleInput").value = ev.title || "";
   document.getElementById("ecDescInput").value = ev.description || "";
+  ecSelectedColor = ev.color || "";
+  renderEcTemplateButtons();
+  renderColorRow("ecColors", ecSelectedColor, "ecPickColor");
   setMsg(ecMsg,"","");
   document.getElementById("ecForm").style.display = "block";
   document.getElementById("ecTitleInput").focus();
@@ -1481,11 +1603,11 @@ async function ecSave(){
   try{
     if(ecEditingId){
       const { error } = await db.from("events")
-        .update({ title:title, description:desc }).eq("id", ecEditingId);
+        .update({ title:title, description:desc, color:ecSelectedColor || null }).eq("id", ecEditingId);
       if(error) throw error;
     }else{
       const { error } = await db.from("events")
-        .insert({ date:ecSelected, title:title, description:desc });
+        .insert({ date:ecSelected, title:title, description:desc, color:ecSelectedColor || null });
       if(error) throw error;
     }
     btn.disabled = false;
@@ -1521,6 +1643,110 @@ document.getElementById("ecPrev").addEventListener("click", ()=>{
 document.getElementById("ecNext").addEventListener("click", ()=>{
   ecMonth++; if(ecMonth>11){ ecMonth=0; ecYear++; } ecHideForm(); ecLoadMonth();
 });
+
+/* =========================================================
+   ④-2b テンプレート管理（追加 / 編集 / 削除）
+   ========================================================= */
+let tmplEditingId = null;
+let tmplSelectedColor = "";
+const tmplMsg = document.getElementById("tmplMsg");
+
+document.getElementById("tmplToggle").addEventListener("click", ()=>{
+  const panel = document.getElementById("tmplPanel");
+  const open = panel.style.display === "none" || panel.style.display === "";
+  panel.style.display = open ? "block" : "none";
+  document.getElementById("tmplToggle").textContent = open ? "テンプレート管理を閉じる ▴" : "テンプレート管理を開く ▾";
+  if(open){ tmplClearForm(); renderTmplList(); }
+});
+
+function renderTmplList(){
+  const el = document.getElementById("tmplList");
+  if(!el) return;
+  if(ecTemplatesData.length === 0){
+    el.innerHTML = '<div class="ec-none">テンプレートがありません。下のフォームから追加してください。</div>';
+    return;
+  }
+  el.innerHTML = ecTemplatesData.map(t=>`
+    <div class="tmpl-item">
+      <span class="sw" style="background:${colorCss(t.color)}"></span>
+      <span class="nm">${esc(t.name)}</span>
+      <button class="mini edit" onclick="tmplEdit('${t.id}')">編集</button>
+      <button class="mini del" onclick="tmplDelete('${t.id}')">削除</button>
+    </div>`).join("");
+}
+
+function tmplClearForm(){
+  tmplEditingId = null;
+  tmplSelectedColor = "";
+  document.getElementById("tmplFormTitle").textContent = "テンプレートを追加";
+  document.getElementById("tmplName").value = "";
+  document.getElementById("tmplDesc").value = "";
+  renderColorRow("tmplColors", tmplSelectedColor, "tmplPickColor");
+  setMsg(tmplMsg,"","");
+}
+
+function tmplPickColor(v){ tmplSelectedColor = v; renderColorRow("tmplColors", tmplSelectedColor, "tmplPickColor"); }
+window.tmplPickColor = tmplPickColor;
+
+function tmplEdit(id){
+  const t = ecTemplatesData.find(x=>String(x.id)===String(id));
+  if(!t) return;
+  tmplEditingId = t.id;
+  tmplSelectedColor = t.color || "";
+  document.getElementById("tmplFormTitle").textContent = "テンプレートを編集";
+  document.getElementById("tmplName").value = t.name || "";
+  document.getElementById("tmplDesc").value = t.description || "";
+  renderColorRow("tmplColors", tmplSelectedColor, "tmplPickColor");
+  setMsg(tmplMsg,"","");
+  document.getElementById("tmplName").focus();
+}
+window.tmplEdit = tmplEdit;
+
+document.getElementById("tmplCancel").addEventListener("click", tmplClearForm);
+document.getElementById("tmplSave").addEventListener("click", tmplSave);
+
+async function tmplSave(){
+  const name = document.getElementById("tmplName").value.trim();
+  const desc = document.getElementById("tmplDesc").value.trim();
+  if(!name){ setMsg(tmplMsg,"テンプレート名を入力してください","err"); return; }
+  const btn = document.getElementById("tmplSave");
+  btn.disabled = true;
+  setMsg(tmplMsg,"保存中…","");
+  try{
+    if(tmplEditingId){
+      const { error } = await db.from("event_templates")
+        .update({ name:name, description:desc, color:tmplSelectedColor || null }).eq("id", tmplEditingId);
+      if(error) throw error;
+    }else{
+      const nextOrder = ecTemplatesData.reduce((m,t)=>Math.max(m, t.sort_order||0), 0) + 1;
+      const { error } = await db.from("event_templates")
+        .insert({ name:name, description:desc, color:tmplSelectedColor || null, sort_order:nextOrder });
+      if(error) throw error;
+    }
+    btn.disabled = false;
+    setMsg(tmplMsg,"保存しました ✓","ok");
+    await loadEcTemplates();   // 一覧・選択ボタンを更新
+    tmplClearForm();
+  }catch(e){
+    console.error(e);
+    btn.disabled = false;
+    setMsg(tmplMsg,"保存に失敗しました。もう一度お試しください。","err");
+  }
+}
+
+async function tmplDelete(id){
+  if(!confirm("このテンプレートを削除しますか？（登録済みのイベントには影響しません）")) return;
+  try{
+    const { error } = await db.from("event_templates").delete().eq("id", id);
+    if(error) throw error;
+    await loadEcTemplates();
+    tmplClearForm();
+  }catch(e){
+    console.error(e);
+    alert("削除に失敗しました。もう一度お試しください。");
+  }
+}
+window.tmplDelete = tmplDelete;
 
 /* =========================================================
    起動時：保存済みログインの自動復帰

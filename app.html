@@ -182,6 +182,22 @@ input::placeholder{color:#7fa28d}
 .photo-cell img{width:100%;height:100%;object-fit:cover;display:block}
 .photo-del{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:8px;border:none;cursor:pointer;background:rgba(224,91,74,.92);color:#fff;font-size:1rem;font-weight:900;display:grid;place-items:center}
 .photo-empty{grid-column:1/-1;text-align:center;color:var(--dim);font-size:.88rem;padding:1.2rem 0}
+
+/* 賞金計算 */
+.rank-list{margin-top:.6rem;display:flex;flex-direction:column;gap:.5rem}
+.rank-row{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;border-radius:10px;background:rgba(0,0,0,.2);border:1px solid var(--line)}
+.rank-row.first{border-color:var(--gold);background:rgba(244,208,63,.14)}
+.rank-row .rk{font-weight:900;color:var(--gold);min-width:40px}
+.rank-row .rp{font-size:.74rem;color:var(--dim);min-width:38px}
+.rank-row .rm{flex:1;text-align:right;font-family:"Playfair Display",serif;font-weight:900}
+.rank-row .rkbtn{width:auto;padding:.45rem .8rem;font-size:.76rem}
+.ch-items{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.4rem}
+.ch-chip{padding:.5rem .8rem;border-radius:999px;border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--dim);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit}
+.ch-chip.on{background:rgba(244,208,63,.15);border-color:var(--gold);color:var(--gold)}
+.prz-item{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;border-radius:11px;background:rgba(0,0,0,.2);border:1px solid var(--line);margin-bottom:.5rem}
+.prz-item .pn{flex:1;font-weight:700;min-width:0}
+.prz-item .pn small{display:block;font-size:.72rem;color:var(--dim);font-weight:400}
+.prz-item .mini{padding:.4rem .7rem;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--cream);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -331,6 +347,30 @@ input::placeholder{color:#7fa28d}
             <div class="msg" id="setMsg"></div>
           </div>
         </div>
+
+        <div id="viewCharge" style="display:none">
+          <div class="tabhead"><div class="who" id="chWho">—</div>
+            <button class="btn btn-ghost" style="width:auto;padding:.5rem .9rem;font-size:.85rem" id="btnChBack">戻る</button></div>
+          <div class="panel pad" style="margin-top:.6rem">
+            <div class="eyebrow">賞金マイル計算</div>
+            <label class="fld">プール対象の項目（タップでON/OFF）</label>
+            <div id="chItems" class="ch-items"></div>
+            <label class="fld" for="chTotal">エントリー総額（自動・修正できます）</label>
+            <input id="chTotal" type="number" inputmode="numeric" min="0" value="0" />
+            <label class="fld" for="chPlayers">参加人数（自動・修正できます）</label>
+            <input id="chPlayers" type="number" inputmode="numeric" min="0" value="0" />
+            <label class="fld" for="chTmpl">賞金テンプレ</label>
+            <select id="chTmpl"></select>
+            <div id="chBreak" style="margin-top:.8rem"></div>
+            <div class="divider"></div>
+            <div id="chManualWrap">
+              <label class="fld" for="chManual">任意のマイルを付与（手動）</label>
+              <div style="display:flex;gap:.6rem;align-items:flex-start"><input id="chManual" type="number" inputmode="numeric" min="0" style="flex:1" /><button class="btn btn-gold" style="width:auto;padding:.78rem 1rem" id="btnChManual">付与</button></div>
+            </div>
+            <div id="chNoPerm" class="tiny" style="display:none">手動付与の権限がありません（管理者が許可したスタッフのみ可能）。</div>
+            <div class="msg" id="chMsg"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -343,6 +383,7 @@ input::placeholder{color:#7fa28d}
           <input id="miName" type="text" maxlength="30" placeholder="例）リエントリー" />
           <label class="fld" for="miPrice">金額（円）</label>
           <input id="miPrice" type="number" inputmode="numeric" min="0" placeholder="例）1500" />
+          <label style="display:flex;align-items:center;gap:.5rem;margin-top:.8rem;font-size:.88rem;color:var(--cream)"><input type="checkbox" id="miEntry" style="width:auto;margin:0"> 賞金対象（プール計算に含める）</label>
           <div class="btn-row">
             <button class="btn btn-ghost" id="miCancel">クリア</button>
             <button class="btn btn-gold" id="miSave">保存</button>
@@ -381,6 +422,7 @@ input::placeholder{color:#7fa28d}
       <button class="tab" id="aTabStaff">スタッフ</button>
       <button class="tab" id="aTabCms">サイト編集</button>
       <button class="tab" id="aTabPhoto">写真</button>
+      <button class="tab" id="aTabPrize">賞金</button>
     </div>
 
     <!-- イベント管理 -->
@@ -431,6 +473,7 @@ input::placeholder{color:#7fa28d}
           <input id="stName" type="text" maxlength="20" placeholder="例）山田" />
           <label class="fld" for="stPin">この人のPIN</label>
           <input id="stPin" type="text" inputmode="numeric" maxlength="8" placeholder="例）1234" />
+          <label style="display:flex;align-items:center;gap:.5rem;margin-top:.8rem;font-size:.88rem;color:var(--cream)"><input type="checkbox" id="stGrant" style="width:auto;margin:0"> マイルの手動付与を許可する</label>
           <div class="btn-row"><button class="btn btn-ghost" id="stCancel">クリア</button><button class="btn btn-gold" id="stSave">保存</button></div>
           <div class="msg" id="stMsg"></div>
         </div>
@@ -455,6 +498,26 @@ input::placeholder{color:#7fa28d}
         <input id="photoInput" type="file" accept="image/*" multiple style="display:none" />
         <div class="msg" id="photoMsg"></div>
         <div class="photo-grid" id="photoGrid"><div class="empty">読み込み中…</div></div>
+      </div>
+    </div>
+
+    <!-- 賞金テンプレ -->
+    <div class="tpanel" id="apanel-prize">
+      <div class="pad">
+        <p class="tiny center" style="margin:.2rem 0 .6rem">トナメの金額帯ごとに賞金（マイル）配分を登録します。付与画面で選ぶと自動計算されます。</p>
+        <div id="przList"><div class="empty">読み込み中…</div></div>
+        <div class="panel pad" style="margin-top:.8rem">
+          <div class="eyebrow" id="przFormTitle">賞金テンプレを追加</div>
+          <label class="fld" for="przName">名前</label>
+          <input id="przName" type="text" maxlength="40" placeholder="例）3000円トナメ用" />
+          <label class="fld" for="przRate">プール率（％・総額の何％を賞金に）</label>
+          <input id="przRate" type="number" inputmode="numeric" min="0" max="100" placeholder="例）30" />
+          <label class="fld" for="przPay">人数別の配分（1行に「最小人数: 配分」）</label>
+          <textarea id="przPay" rows="4" placeholder="1: 100&#10;10: 60,40&#10;20: 50,30,20"></textarea>
+          <p class="tiny">人数で配分を分岐できます。左の数字は「その人数以上のとき」。例：10人以上で2人払い、20人以上で3人払い。分岐不要なら1行だけ（例「1: 50,30,20」）。</p>
+          <div class="btn-row"><button class="btn btn-ghost" id="przCancel">クリア</button><button class="btn btn-gold" id="przSave">保存</button></div>
+          <div class="msg" id="przMsg"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -583,12 +646,12 @@ async function staffEnter(){
   const pin=document.getElementById("staffPin").value.trim();
   if(!pin){setMsg(staffPinMsg,"PINを入力してください","err");return;}
   setMsg(staffPinMsg,"確認中…","");
-  if(pin===MASTER_PIN){currentStaff="管理者";afterStaffLogin();return;}
+  if(pin===MASTER_PIN){currentStaff="管理者";currentStaffGrant=true;afterStaffLogin();return;}
   try{
-    const {data,error}=await db.from("staff").select("name").eq("pin",pin).limit(1);
+    const {data,error}=await db.from("staff").select("name,can_grant").eq("pin",pin).limit(1);
     if(error)throw error;
     if(!data||!data.length){setMsg(staffPinMsg,"PINが違います","err");return;}
-    currentStaff=data[0].name;
+    currentStaff=data[0].name;currentStaffGrant=!!data[0].can_grant;
     afterStaffLogin();
   }catch(e){console.error(e);setMsg(staffPinMsg,"接続エラー：設定をご確認ください","err");}
 }
@@ -602,6 +665,7 @@ document.getElementById("btnStaffExit").addEventListener("click",()=>{stopScanne
 
 /* スタッフ名（PINでログインした本人） */
 let currentStaff="";
+let currentStaffGrant=false;
 function requireStaff(){if(!currentStaff){alert("スタッフPINでログインし直してください");return false;}return true;}
 
 /* タブ切替 */
@@ -623,6 +687,7 @@ function showActiveView(v){
   document.getElementById("viewScan").style.display=v==="scan"?"block":"none";
   document.getElementById("viewTab").style.display=v==="tab"?"block":"none";
   document.getElementById("viewSettle").style.display=v==="settle"?"block":"none";
+  document.getElementById("viewCharge").style.display=v==="charge"?"block":"none";
   if(v!=="scan")stopScanner();
 }
 async function loadActive(){
@@ -716,14 +781,78 @@ async function delOrder(id){
 window.delOrder=delOrder;
 document.getElementById("btnTabBack").addEventListener("click",()=>{showActiveView("list");loadActive();});
 
-/* マイル付与 */
-document.getElementById("btnCharge").addEventListener("click",async()=>{
+/* マイル付与（賞金計算） */
+let prizeTmpl=[],chItems=[];
+const chMsgEl=document.getElementById("chMsg");
+document.getElementById("btnCharge").addEventListener("click",openCharge);
+document.getElementById("btnChBack").addEventListener("click",()=>showActiveView("tab"));
+document.getElementById("chTmpl").addEventListener("change",renderBreak);
+document.getElementById("chTotal").addEventListener("input",renderBreak);
+document.getElementById("chPlayers").addEventListener("input",renderBreak);
+async function openCharge(){
   if(!requireStaff())return;
-  const v=prompt("付与するマイル数を入力してください");if(v===null)return;
-  const amt=parseInt(v,10);if(!amt||amt<=0){alert("正しい数を入力してください");return;}
-  try{await db.from("history").insert({user_id:curTab.user_id,action:"チャージ",amount:amt,staff_name:currentStaff});alert(curTab.user_name+" 様に "+yen(amt)+"pt 付与しました");}
-  catch(e){console.error(e);alert("付与に失敗しました");}
+  document.getElementById("chWho").textContent=curTab.user_name;
+  document.getElementById("chManual").value="";setMsg(chMsgEl,"","");
+  document.getElementById("chManualWrap").style.display=currentStaffGrant?"block":"none";
+  document.getElementById("chNoPerm").style.display=currentStaffGrant?"none":"block";
+  try{const r=await db.from("prize_templates").select("*").order("sort_order",{ascending:true});prizeTmpl=r.data||[];}catch(e){console.error(e);prizeTmpl=[];}
+  const sel=document.getElementById("chTmpl");
+  sel.innerHTML=prizeTmpl.length?prizeTmpl.map((t,i)=>'<option value="'+i+'">'+esc(t.name)+'</option>').join(""):'<option value="">テンプレ未登録</option>';
+  let entryNames=new Set();
+  try{const r=await db.from("menu_items").select("name,is_entry");(r.data||[]).forEach(m=>{if(m.is_entry)entryNames.add(m.name);});}catch(e){console.error(e);}
+  const start=new Date();start.setHours(0,0,0,0);
+  let tabs=[],ords=[];
+  try{const rt=await db.from("tabs").select("id,user_id").gte("opened_at",start.toISOString());tabs=rt.data||[];const ids=tabs.map(t=>t.id);if(ids.length){const ro=await db.from("tab_orders").select("name,price,qty,tab_id").in("tab_id",ids);ords=ro.data||[];}}catch(e){console.error(e);}
+  const map={};ords.forEach(o=>{if(!map[o.name])map[o.name]={name:o.name,total:0};map[o.name].total+=o.price*o.qty;});
+  chItems=Object.values(map);
+  const useDefault=entryNames.size>0;
+  chItems.forEach(it=>{it.on=useDefault?entryNames.has(it.name):(it.name.indexOf("エントリー")>=0||it.name.indexOf("アドオン")>=0);});
+  const tabUser={};tabs.forEach(t=>tabUser[t.id]=t.user_id);
+  const entrantSet=new Set();ords.forEach(o=>{const it=chItems.find(x=>x.name===o.name);if(it&&it.on&&tabUser[o.tab_id])entrantSet.add(tabUser[o.tab_id]);});
+  document.getElementById("chPlayers").value=entrantSet.size;
+  renderItems();recomputeTotal();renderBreak();
+  showActiveView("charge");
+}
+function renderItems(){
+  const w=document.getElementById("chItems");
+  if(!chItems.length){w.innerHTML='<span class="tiny">本日の注文がありません。総額・人数を手入力してください。</span>';return;}
+  w.innerHTML=chItems.map((it,i)=>'<button type="button" class="ch-chip'+(it.on?" on":"")+'" onclick="toggleItem('+i+')">'+esc(it.name)+' ¥'+yen(it.total)+'</button>').join("");
+}
+function toggleItem(i){chItems[i].on=!chItems[i].on;renderItems();recomputeTotal();renderBreak();}
+window.toggleItem=toggleItem;
+function recomputeTotal(){let sum=0;chItems.forEach(it=>{if(it.on)sum+=it.total;});document.getElementById("chTotal").value=sum;}
+function renderBreak(){
+  const w=document.getElementById("chBreak");
+  const iv=document.getElementById("chTmpl").value;
+  const total=parseInt(document.getElementById("chTotal").value,10)||0;
+  const players=parseInt(document.getElementById("chPlayers").value,10)||0;
+  if(iv===""||!prizeTmpl[iv]){w.innerHTML='<div class="tiny">賞金テンプレが未登録です。管理者ページ→「賞金」で追加してください。</div>';return;}
+  const t=prizeTmpl[iv];
+  const pool=Math.round(total*(t.prize_rate||0)/100);
+  const payStr=pickTierPay(t,players);
+  const parts=String(payStr).split(",").map(x=>parseFloat(x)||0).filter(x=>x>0);
+  let html='<div class="tiny">'+players+'人 → 配分 '+esc(payStr)+'　／　プール（'+(t.prize_rate||0)+'%）= <b style="color:var(--gold)">'+yen(pool)+' pt</b></div><div class="rank-list">';
+  parts.forEach((p,idx)=>{const m=Math.round(pool*p/100);html+='<div class="rank-row'+(idx===0?" first":"")+'"><span class="rk">'+(idx+1)+'位</span><span class="rp">'+p+'%</span><span class="rm">'+yen(m)+' pt</span><button class="btn btn-gold rkbtn" onclick="grantRank('+m+')">この人に付与</button></div>';});
+  html+='</div>';
+  w.innerHTML=html;
+}
+async function grantRank(m){
+  if(!m||m<=0){alert("総額・配分をご確認ください");return;}
+  if(!confirm(curTab.user_name+" 様に "+yen(m)+"pt を付与します。よろしいですか？"))return;
+  await doGrant(m);
+}
+window.grantRank=grantRank;
+document.getElementById("btnChManual").addEventListener("click",async()=>{
+  if(!currentStaffGrant){setMsg(chMsgEl,"手動付与の権限がありません","err");return;}
+  const m=parseInt(document.getElementById("chManual").value,10)||0;
+  if(m<=0){setMsg(chMsgEl,"マイル数を入力してください","err");return;}
+  if(!confirm(curTab.user_name+" 様に "+yen(m)+"pt を付与します。よろしいですか？"))return;
+  await doGrant(m);
 });
+async function doGrant(m){
+  try{const r=await db.from("history").insert({user_id:curTab.user_id,action:"チャージ",amount:m,staff_name:currentStaff});if(r.error)throw r.error;setMsg(chMsgEl,yen(m)+"pt を付与しました ✓","ok");setTimeout(()=>showActiveView("tab"),1200);}
+  catch(e){console.error(e);setMsg(chMsgEl,"付与に失敗しました","err");}
+}
 
 /* ===== 精算 ===== */
 let setTotalV=0,setValidV=0;
@@ -785,22 +914,23 @@ async function loadMenuMgr(){
     if(error)throw error;
     menuMgrCache=data||[];
     if(!data||!data.length){w.innerHTML='<div class="empty">メニューがありません。下から追加してください。</div>';return;}
-    w.innerHTML=data.map(m=>'<div class="mitem"><span class="mn">'+esc(m.name)+'</span><span class="mp">¥'+yen(m.price)+'</span><button class="mini" onclick="miEdit(\''+m.id+'\')">編集</button><button class="mini del" onclick="miDelete(\''+m.id+'\')">削除</button></div>').join("");
+    w.innerHTML=data.map(m=>'<div class="mitem"><span class="mn">'+esc(m.name)+(m.is_entry?' <span style="font-size:.66rem;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:0 .3rem">賞金</span>':'')+'</span><span class="mp">¥'+yen(m.price)+'</span><button class="mini" onclick="miEdit(\''+m.id+'\')">編集</button><button class="mini del" onclick="miDelete(\''+m.id+'\')">削除</button></div>').join("");
   }catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}
 }
-function miClear(){miEditing=null;document.getElementById("miFormTitle").textContent="メニューを追加";document.getElementById("miName").value="";document.getElementById("miPrice").value="";setMsg(miMsg,"","");}
-function miEdit(id){const m=menuMgrCache.find(x=>String(x.id)===String(id));if(!m)return;miEditing=m.id;document.getElementById("miFormTitle").textContent="メニューを編集";document.getElementById("miName").value=m.name;document.getElementById("miPrice").value=m.price;setMsg(miMsg,"","");document.getElementById("miName").focus();}
+function miClear(){miEditing=null;document.getElementById("miFormTitle").textContent="メニューを追加";document.getElementById("miName").value="";document.getElementById("miPrice").value="";document.getElementById("miEntry").checked=false;setMsg(miMsg,"","");}
+function miEdit(id){const m=menuMgrCache.find(x=>String(x.id)===String(id));if(!m)return;miEditing=m.id;document.getElementById("miFormTitle").textContent="メニューを編集";document.getElementById("miName").value=m.name;document.getElementById("miPrice").value=m.price;document.getElementById("miEntry").checked=!!m.is_entry;setMsg(miMsg,"","");document.getElementById("miName").focus();}
 window.miEdit=miEdit;
 document.getElementById("miCancel").addEventListener("click",miClear);
 document.getElementById("miSave").addEventListener("click",async()=>{
   const name=document.getElementById("miName").value.trim();
   const price=parseInt(document.getElementById("miPrice").value,10);
+  const isEntry=document.getElementById("miEntry").checked;
   if(!name){setMsg(miMsg,"メニュー名を入力してください","err");return;}
   if(isNaN(price)||price<0){setMsg(miMsg,"金額を正しく入力してください","err");return;}
   const btn=document.getElementById("miSave");btn.disabled=true;setMsg(miMsg,"保存中…","");
   try{
-    if(miEditing){const {error}=await db.from("menu_items").update({name,price}).eq("id",miEditing);if(error)throw error;}
-    else{const ord=menuMgrCache.reduce((m,x)=>Math.max(m,x.sort_order||0),0)+1;const {error}=await db.from("menu_items").insert({name,price,sort_order:ord});if(error)throw error;}
+    if(miEditing){const {error}=await db.from("menu_items").update({name,price,is_entry:isEntry}).eq("id",miEditing);if(error)throw error;}
+    else{const ord=menuMgrCache.reduce((m,x)=>Math.max(m,x.sort_order||0),0)+1;const {error}=await db.from("menu_items").insert({name,price,is_entry:isEntry,sort_order:ord});if(error)throw error;}
     btn.disabled=false;setMsg(miMsg,"保存しました ✓","ok");miClear();loadMenuMgr();
   }catch(e){console.error(e);btn.disabled=false;setMsg(miMsg,"保存に失敗しました","err");}
 });
@@ -866,14 +996,15 @@ document.getElementById("btnAdminEnter").addEventListener("click",adminEnter);
 function adminEnter(){const pin=document.getElementById("adminPin").value.trim();if(pin!==ADMIN_PIN){setMsg(adminPinMsg,"PINが違います","err");return;}document.getElementById("adminPin").value="";setMsg(adminPinMsg,"","");showScreen("screen-admin");adminTab("event");}
 document.getElementById("btnAdminExit").addEventListener("click",()=>showScreen("screen-login"));
 function adminTab(t){
-  [["aTabEvent","apanel-event","event"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
-  if(t==="event")ecInit();else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();
+  [["aTabEvent","apanel-event","event"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
+  if(t==="event")ecInit();else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();else if(t==="prize"){przClear();loadPrize();}
 }
 document.getElementById("aTabEvent").addEventListener("click",()=>adminTab("event"));
 document.getElementById("aTabPL").addEventListener("click",()=>adminTab("pl"));
 document.getElementById("aTabStaff").addEventListener("click",()=>adminTab("staff"));
 document.getElementById("aTabCms").addEventListener("click",()=>adminTab("cms"));
 document.getElementById("aTabPhoto").addEventListener("click",()=>adminTab("photo"));
+document.getElementById("aTabPrize").addEventListener("click",()=>adminTab("prize"));
 
 /* ---- イベント管理 ---- */
 const EVENT_COLORS=[{v:"",css:"#f4d03f"},{v:"#e74c3c",css:"#e74c3c"},{v:"#e67e22",css:"#e67e22"},{v:"#2ecc71",css:"#2ecc71"},{v:"#3498db",css:"#3498db"},{v:"#9b59b6",css:"#9b59b6"},{v:"#ff5fa2",css:"#ff5fa2"}];
@@ -949,19 +1080,19 @@ document.getElementById("ecNext").addEventListener("click",()=>{ecMonth++;if(ecM
 
 /* ---- スタッフ管理 ---- */
 let stEditing=null,stCache=[];const stMsg=document.getElementById("stMsg");
-async function loadStaff(){const w=document.getElementById("stList");try{const r=await db.from("staff").select("*").order("sort_order",{ascending:true});if(r.error)throw r.error;stCache=r.data||[];if(!stCache.length){w.innerHTML='<div class="empty">スタッフがいません。下から追加してください。</div>';return;}w.innerHTML=stCache.map(s=>'<div class="st-item"><span class="snm">'+esc(s.name)+'</span><span class="spin">PIN '+esc(s.pin||"-")+'</span><button class="mini" onclick="stEdit(\''+s.id+'\')">編集</button><button class="mini" onclick="stDel(\''+s.id+'\')">削除</button></div>').join("");}catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}}
-function stClear(){stEditing=null;document.getElementById("stFormTitle").textContent="スタッフを追加";document.getElementById("stName").value="";document.getElementById("stPin").value="";setMsg(stMsg,"","");}
-function stEdit(id){const s=stCache.find(x=>String(x.id)===String(id));if(!s)return;stEditing=s.id;document.getElementById("stFormTitle").textContent="スタッフを編集";document.getElementById("stName").value=s.name;document.getElementById("stPin").value=s.pin||"";setMsg(stMsg,"","");}
+async function loadStaff(){const w=document.getElementById("stList");try{const r=await db.from("staff").select("*").order("sort_order",{ascending:true});if(r.error)throw r.error;stCache=r.data||[];if(!stCache.length){w.innerHTML='<div class="empty">スタッフがいません。下から追加してください。</div>';return;}w.innerHTML=stCache.map(s=>'<div class="st-item"><span class="snm">'+esc(s.name)+(s.can_grant?' <span style="font-size:.64rem;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:0 .3rem">付与可</span>':'')+'</span><span class="spin">PIN '+esc(s.pin||"-")+'</span><button class="mini" onclick="stEdit(\''+s.id+'\')">編集</button><button class="mini" onclick="stDel(\''+s.id+'\')">削除</button></div>').join("");}catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}}
+function stClear(){stEditing=null;document.getElementById("stFormTitle").textContent="スタッフを追加";document.getElementById("stName").value="";document.getElementById("stPin").value="";document.getElementById("stGrant").checked=false;setMsg(stMsg,"","");}
+function stEdit(id){const s=stCache.find(x=>String(x.id)===String(id));if(!s)return;stEditing=s.id;document.getElementById("stFormTitle").textContent="スタッフを編集";document.getElementById("stName").value=s.name;document.getElementById("stPin").value=s.pin||"";document.getElementById("stGrant").checked=!!s.can_grant;setMsg(stMsg,"","");}
 window.stEdit=stEdit;
 document.getElementById("stCancel").addEventListener("click",stClear);
 document.getElementById("stSave").addEventListener("click",async()=>{
-  const name=document.getElementById("stName").value.trim();const pin=document.getElementById("stPin").value.trim();
+  const name=document.getElementById("stName").value.trim();const pin=document.getElementById("stPin").value.trim();const grant=document.getElementById("stGrant").checked;
   if(!name){setMsg(stMsg,"名前を入力してください","err");return;}
   if(!/^[0-9]{3,8}$/.test(pin)){setMsg(stMsg,"PINは3〜8桁の数字で入力してください","err");return;}
   const btn=document.getElementById("stSave");btn.disabled=true;setMsg(stMsg,"保存中…","");
   try{
-    if(stEditing){const r=await db.from("staff").update({name:name,pin:pin}).eq("id",stEditing);if(r.error)throw r.error;}
-    else{const ord=stCache.reduce((m,x)=>Math.max(m,x.sort_order||0),0)+1;const r=await db.from("staff").insert({name:name,pin:pin,sort_order:ord});if(r.error)throw r.error;}
+    if(stEditing){const r=await db.from("staff").update({name:name,pin:pin,can_grant:grant}).eq("id",stEditing);if(r.error)throw r.error;}
+    else{const ord=stCache.reduce((m,x)=>Math.max(m,x.sort_order||0),0)+1;const r=await db.from("staff").insert({name:name,pin:pin,can_grant:grant,sort_order:ord});if(r.error)throw r.error;}
     btn.disabled=false;setMsg(stMsg,"保存しました ✓","ok");stClear();loadStaff();
   }catch(e){console.error(e);btn.disabled=false;setMsg(stMsg,"保存に失敗しました","err");}
 });
@@ -1082,6 +1213,56 @@ function resizeImage(file,maxSize,quality){
 }
 async function photoDelete(name){if(!confirm("この写真を削除しますか？"))return;try{const r=await db.storage.from(PHOTO_BUCKET).remove([name]);if(r.error)throw r.error;photosLoad();}catch(e){console.error(e);alert("削除に失敗しました");}}
 window.photoDelete=photoDelete;
+
+/* ---- 賞金テンプレ管理 ---- */
+let przEditing=null,przCache=[];const przMsg=document.getElementById("przMsg");
+function parseTiers(text){
+  const lines=String(text).split("\n").map(l=>l.trim()).filter(l=>l);
+  if(!lines.length)return null;
+  const tiers=[];
+  for(const ln of lines){
+    const m=ln.match(/^(\d+)\s*[:：]\s*(.+)$/);
+    if(!m)return null;
+    const min=parseInt(m[1],10);
+    const pay=m[2].replace(/[、\s]/g,"").replace(/,+/g,",").replace(/^,|,$/g,"");
+    if(!/^\d+(,\d+)*$/.test(pay))return null;
+    tiers.push({min:min,pay:pay});
+  }
+  tiers.sort((a,b)=>a.min-b.min);
+  return tiers;
+}
+function tiersArr(t){let a=[];if(t.tiers){try{a=JSON.parse(t.tiers);}catch(e){a=[];}}if(!a.length&&t.payouts)a=[{min:1,pay:t.payouts}];return a;}
+function tiersToText(t){return tiersArr(t).map(z=>z.min+": "+z.pay).join("\n");}
+function tiersSummary(t){return tiersArr(t).map(z=>z.min+"人〜 "+z.pay).join(" ／ ");}
+function pickTierPay(t,players){const a=tiersArr(t);if(!a.length)return"";let best=null;a.forEach(z=>{if(players>=z.min&&(!best||z.min>best.min))best=z;});if(!best)best=a[0];return best.pay;}
+async function loadPrize(){
+  const w=document.getElementById("przList");
+  try{const r=await db.from("prize_templates").select("*").order("sort_order",{ascending:true});if(r.error)throw r.error;przCache=r.data||[];
+    if(!przCache.length){w.innerHTML='<div class="empty">賞金テンプレがありません。下から追加してください。</div>';return;}
+    w.innerHTML=przCache.map(p=>'<div class="prz-item"><span class="pn">'+esc(p.name)+'<small>プール'+p.prize_rate+'% ／ '+esc(tiersSummary(p))+'</small></span><button class="mini" onclick="przEdit(\''+p.id+'\')">編集</button><button class="mini" onclick="przDel(\''+p.id+'\')">削除</button></div>').join("");
+  }catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}
+}
+function przClear(){przEditing=null;document.getElementById("przFormTitle").textContent="賞金テンプレを追加";document.getElementById("przName").value="";document.getElementById("przRate").value="";document.getElementById("przPay").value="";setMsg(przMsg,"","");}
+function przEdit(id){const p=przCache.find(x=>String(x.id)===String(id));if(!p)return;przEditing=p.id;document.getElementById("przFormTitle").textContent="賞金テンプレを編集";document.getElementById("przName").value=p.name;document.getElementById("przRate").value=p.prize_rate;document.getElementById("przPay").value=tiersToText(p);setMsg(przMsg,"","");}
+window.przEdit=przEdit;
+document.getElementById("przCancel").addEventListener("click",przClear);
+document.getElementById("przSave").addEventListener("click",async()=>{
+  const name=document.getElementById("przName").value.trim();
+  const rate=parseInt(document.getElementById("przRate").value,10);
+  const tiers=parseTiers(document.getElementById("przPay").value);
+  if(!name){setMsg(przMsg,"名前を入力してください","err");return;}
+  if(isNaN(rate)||rate<0||rate>100){setMsg(przMsg,"プール率は0〜100で入力してください","err");return;}
+  if(!tiers||!tiers.length){setMsg(przMsg,"配分は「10: 60,40」のように『人数: 配分』で入力してください","err");return;}
+  const btn=document.getElementById("przSave");btn.disabled=true;setMsg(przMsg,"保存中…","");
+  try{
+    const payload={name:name,prize_rate:rate,payouts:tiers[0].pay,tiers:JSON.stringify(tiers)};
+    if(przEditing){const r=await db.from("prize_templates").update(payload).eq("id",przEditing);if(r.error)throw r.error;}
+    else{const ord=przCache.reduce((m,x)=>Math.max(m,x.sort_order||0),0)+1;payload.sort_order=ord;const r=await db.from("prize_templates").insert(payload);if(r.error)throw r.error;}
+    btn.disabled=false;setMsg(przMsg,"保存しました ✓","ok");przClear();loadPrize();
+  }catch(e){console.error(e);btn.disabled=false;setMsg(przMsg,"保存に失敗しました","err");}
+});
+async function przDel(id){if(!confirm("この賞金テンプレを削除しますか？"))return;try{await db.from("prize_templates").delete().eq("id",id);loadPrize();}catch(e){console.error(e);alert("削除に失敗しました");}}
+window.przDel=przDel;
 
 
 /* ===== 起動 ===== */

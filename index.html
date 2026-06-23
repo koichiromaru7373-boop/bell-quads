@@ -462,27 +462,6 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
     <p data-cms="cta_p">残高チェック・履歴の確認・店頭でのQR提示はマイページから。</p>
     <a class="btn btn-gold" href="app.html" data-cms="cta_btn">マイページ・ログイン</a>
   </div>
-
-  </div>
-<div style="text-align: center; margin: 40px 0;">
-  <p style="color: #FFD700; font-weight: bold; margin-bottom: 15px;">＼ お店の最新情報や雰囲気をチェック！ ／</p>
-  
-  <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
-    
-    <a href="https://www.instagram.com/bellquads_poker?igsh=MXZwajM2M29lZjlzaw%3D%3D&utm_source=qr" target="_blank" style="text-decoration: none; background: #1a4224; color: #FFD700; padding: 12px 24px; border-radius: 30px; font-weight: bold; border: 2px solid #FFD700; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-       Instagram
-    </a>
-    <a href="https://x.com/bellquads_poker?s=11" target="_blank" style="text-decoration: none; background: #1a4224; color: #FFD700; padding: 12px 24px; border-radius: 30px; font-weight: bold; border: 2px solid #FFD700; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-      𝕏  (Twitter)
-    </a>
-  </div>
-  <!-- 最新のSNS投稿セクション -->
-<section id="sns-feed" style="margin-top: 2rem;">
-  <div class="wrap">
-    <div style="text-align: center;">
-      <span class="eyebrow" style="justify-content: center;">Latest Updates</span>
-      <h2 class="sec-title" style="margin-bottom: 1.5rem;">最新情報</h2>
-    </div>
 </div>
 
 <footer>
@@ -494,6 +473,49 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
     <div>© <span id="year"></span> Bell Quads. All rights reserved.</div>
   </div>
 </footer>
+
+<!-- イベント詳細モーダル -->
+<div class="event-modal" id="eventModal">
+  <div class="event-modal-content">
+    <div class="event-modal-header">
+      <h2 style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.4rem;margin:0">イベント詳細</h2>
+      <button class="event-modal-close" id="eventModalClose">✕</button>
+    </div>
+    <div class="event-modal-body">
+      <!-- 背景画像 -->
+      <div class="event-bg" id="eventBgContainer">📅</div>
+      
+      <!-- イベント基本情報 -->
+      <div class="event-detail-head">
+        <div class="event-detail-date" id="eventDetailDate">—</div>
+        <h3 class="event-detail-title" id="eventDetailTitle">—</h3>
+      </div>
+
+      <!-- 詳細説明 -->
+      <div class="event-detail-desc" id="eventDetailDesc" style="display:none"></div>
+
+      <!-- 写真スライダー -->
+      <div class="event-photos" id="eventPhotosWrap" style="display:none">
+        <div class="event-photos-title">📸 イベント写真</div>
+        <div class="event-photos-slider">
+          <img id="eventPhotoMain" class="event-photo-main" src="" alt="" />
+        </div>
+        <div class="event-photo-nav" id="eventPhotoThumbs"></div>
+      </div>
+
+      <!-- SNSリンク -->
+      <div class="event-sns" id="eventSnsWrap" style="display:none">
+        <div class="event-sns-title">🔗 SNSで情報をシェア</div>
+        <div class="event-sns-list" id="eventSnsList"></div>
+      </div>
+
+      <!-- 基本説明（CMS由来） -->
+      <div style="margin-top:2rem;padding-top:1.4rem;border-top:1px solid var(--line)">
+        <p id="eventDetailDescBasic" style="color:var(--cream-dim);font-size:.92rem;line-height:1.7"></p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- 店内状況ポップアップ -->
 <div class="live-fab" id="liveFab">
@@ -681,6 +703,7 @@ async function loadPickup(){
     list.querySelectorAll(".pickup-card").forEach(card=>{
       card.addEventListener("click", ()=>{
         const eventId = card.dataset.eventId;
+        console.log("🎯 Pickup card clicked! Event ID:", eventId);
         if(eventId) openEventDetail(eventId);
       });
     });
@@ -804,11 +827,13 @@ loadSlideshow();
 let currentEventDetail = null;
 
 async function openEventDetail(eventId){
+  console.log("📌 openEventDetail called with ID:", eventId);
   try{
     // イベント詳細情報を取得
     const { data: event, error: evError } = await db.from("events").select("*").eq("id", eventId).single();
     if(evError) throw evError;
-    if(!event) return;
+    if(!event) {console.log("❌ Event not found"); return;}
+    console.log("✅ Event loaded:", event);
 
     // 写真を取得
     const { data: photos, error: phError } = await db.from("event_photos").select("*")
@@ -900,7 +925,10 @@ async function openEventDetail(eventId){
     }
 
     // モーダル表示
+    console.log("🎯 Modal element:", modal);
+    if(!modal) {console.error("❌ Modal element not found!"); return;}
     modal.classList.add("active");
+    console.log("✨ Modal class updated. Current classes:", modal.className);
     document.body.style.overflow = "hidden";
   }catch(e){
     console.error("Error loading event detail:", e);
@@ -919,6 +947,11 @@ document.getElementById("eventModalClose").addEventListener("click", closeEventD
 document.getElementById("eventModal").addEventListener("click", (e)=>{
   if(e.target.id === "eventModal") closeEventDetail();
 });
+
+// 初期化確認ログ
+console.log("✅ Event detail modal system initialized");
+console.log("Modal element exists:", !!document.getElementById("eventModal"));
+console.log("Modal close button exists:", !!document.getElementById("eventModalClose"));
 </script>
 </body>
 </html>

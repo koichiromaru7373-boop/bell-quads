@@ -437,14 +437,53 @@ input::placeholder{color:#7fa28d}
           <div class="ec-date" id="ecFormDate">—</div>
           <label class="fld">テンプレートから入力</label>
           <div class="tmpl-row" id="ecTemplates"></div>
+          
+          <!-- 基本情報 -->
           <label class="fld" for="ecTitleInput">タイトル</label>
           <input id="ecTitleInput" type="text" maxlength="40" placeholder="例）月例メインイベント" />
           <label class="fld" for="ecDescInput">説明（改行OK）</label>
           <textarea id="ecDescInput" rows="4" placeholder="スタート 18:30 ／ …"></textarea>
+          
+          <!-- 詳細説明（制限なし） -->
+          <label class="fld" for="ecDetailDescInput">詳細説明（制限なし）</label>
+          <textarea id="ecDetailDescInput" rows="6" placeholder="イベントの詳しい説明、ルール、賞品情報など…"></textarea>
+          
+          <!-- 背景画像 -->
+          <label class="fld">背景画像（イベント詳細ページ用）</label>
+          <div style="display:flex;gap:.5rem">
+            <input id="ecBgImageInput" type="file" accept="image/*" style="flex:1;cursor:pointer" />
+            <button type="button" class="btn btn-ghost" style="flex:0;width:auto;padding:.8rem" id="ecBgImageRemove">削除</button>
+          </div>
+          <div id="ecBgImagePreview" style="margin-top:.6rem"></div>
+          
+          <!-- イベント写真（複数） -->
+          <label class="fld">イベント写真（最大5枚）</label>
+          <input id="ecPhotosInput" type="file" accept="image/*" multiple style="cursor:pointer" />
+          <div id="ecPhotosPreview" style="margin-top:.8rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:.6rem"></div>
+          
+          <!-- カレンダーの色 -->
           <label class="fld">カレンダーの色</label>
           <div class="color-row" id="ecColors"></div>
-          <label class="fld">今月のPICK UPに表示</label>
+          
+          <!-- SNS設定 -->
+          <div style="margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid var(--line)">
+            <div class="eyebrow" style="margin-bottom:.8rem">SNSリンク設定</div>
+            <label class="fld" for="ecTwitterUrl">X（Twitter）URL</label>
+            <input id="ecTwitterUrl" type="url" placeholder="https://x.com/…" />
+            <label class="fld" for="ecInstagramUrl">InstagramのURL</label>
+            <input id="ecInstagramUrl" type="url" placeholder="https://instagram.com/…" />
+            <label class="fld" for="ecFacebookUrl">FacebookのURL</label>
+            <input id="ecFacebookUrl" type="url" placeholder="https://facebook.com/…" />
+            <label class="fld" for="ecTiktokUrl">TikTokのURL</label>
+            <input id="ecTiktokUrl" type="url" placeholder="https://tiktok.com/@…" />
+            <label class="fld" for="ecYoutubeUrl">YouTubeのURL</label>
+            <input id="ecYoutubeUrl" type="url" placeholder="https://youtube.com/…" />
+          </div>
+          
+          <!-- PICK UP -->
+          <label class="fld" style="margin-top:1.2rem">今月のPICK UPに表示</label>
           <button type="button" class="pickup-toggle" id="ecPickup">表示しない</button>
+          
           <div class="btn-row"><button class="btn btn-ghost" id="ecCancel">キャンセル</button><button class="btn btn-gold" id="ecSave">保存する</button></div>
           <div class="msg" id="ecMsg"></div>
         </div>
@@ -1057,21 +1096,78 @@ function renderEcTmpl(){const el=document.getElementById("ecTemplates");if(!ecTm
 function ecApplyTmpl(i){const t=ecTmpl[i];if(!t)return;document.getElementById("ecTitleInput").value=t.name||"";document.getElementById("ecDescInput").value=t.description||"";ecColor=t.color||"";renderEcColors();}window.ecApplyTmpl=ecApplyTmpl;
 function renderEcPickup(){const b=document.getElementById("ecPickup");b.classList.toggle("on",ecPickup);b.textContent=ecPickup?"★ PICK UPに表示中":"表示しない";}
 document.getElementById("ecPickup").addEventListener("click",()=>{ecPickup=!ecPickup;renderEcPickup();});
-function ecAdd(){ecEditingId=null;document.getElementById("ecFormTitle").textContent="イベントを追加";const d=new Date(ecSelected+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value="";document.getElementById("ecDescInput").value="";ecColor="";ecPickup=false;renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
+function ecAdd(){ecEditingId=null;document.getElementById("ecFormTitle").textContent="イベントを追加";const d=new Date(ecSelected+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value="";document.getElementById("ecDescInput").value="";document.getElementById("ecDetailDescInput").value="";document.getElementById("ecTwitterUrl").value="";document.getElementById("ecInstagramUrl").value="";document.getElementById("ecFacebookUrl").value="";document.getElementById("ecTiktokUrl").value="";document.getElementById("ecYoutubeUrl").value="";document.getElementById("ecBgImageInput").value="";document.getElementById("ecPhotosInput").value="";document.getElementById("ecBgImagePreview").innerHTML="";document.getElementById("ecPhotosPreview").innerHTML="";ecColor="";ecPickup=false;ecBgImageFile=null;ecPhotosFiles=[];renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
 window.ecAdd=ecAdd;
-function ecEdit(id){const ev=(ecEvents[ecSelected]||[]).find(e=>String(e.id)===String(id));if(!ev)return;ecEditingId=ev.id;document.getElementById("ecFormTitle").textContent="イベントを編集";const d=new Date(ev.date+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value=ev.title||"";document.getElementById("ecDescInput").value=ev.description||"";ecColor=ev.color||"";ecPickup=!!ev.is_pickup;renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
+function ecEdit(id){const ev=(ecEvents[ecSelected]||[]).find(e=>String(e.id)===String(id));if(!ev)return;ecEditingId=ev.id;document.getElementById("ecFormTitle").textContent="イベントを編集";const d=new Date(ev.date+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value=ev.title||"";document.getElementById("ecDescInput").value=ev.description||"";document.getElementById("ecDetailDescInput").value=ev.detailed_description||"";document.getElementById("ecTwitterUrl").value=ev.twitter_url||"";document.getElementById("ecInstagramUrl").value=ev.instagram_url||"";document.getElementById("ecFacebookUrl").value=ev.facebook_url||"";document.getElementById("ecTiktokUrl").value=ev.tiktok_url||"";document.getElementById("ecYoutubeUrl").value=ev.youtube_url||"";ecColor=ev.color||"";ecPickup=!!ev.is_pickup;ecBgImageFile=null;ecPhotosFiles=[];document.getElementById("ecBgImageInput").value="";document.getElementById("ecPhotosInput").value="";if(ev.background_image){document.getElementById("ecBgImagePreview").innerHTML='<div style="width:100%;height:120px;background-image:url(\''+ev.background_image+'\');background-size:cover;background-position:center;border-radius:8px;border:1px solid var(--line)"></div>';}else{document.getElementById("ecBgImagePreview").innerHTML="";}renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
 window.ecEdit=ecEdit;
 document.getElementById("ecCancel").addEventListener("click",()=>{document.getElementById("ecForm").style.display="none";});
+let ecBgImageFile=null, ecPhotosFiles=[];
+document.getElementById("ecBgImageInput").addEventListener("change",(e)=>{ecBgImageFile=e.target.files[0]||null;if(ecBgImageFile){const reader=new FileReader();reader.onload=(ev)=>{document.getElementById("ecBgImagePreview").innerHTML='<div style="width:100%;height:120px;background-image:url(\''+ev.target.result+'\');background-size:cover;background-position:center;border-radius:8px;border:1px solid var(--line)"></div>';};reader.readAsDataURL(ecBgImageFile);}});
+document.getElementById("ecBgImageRemove").addEventListener("click",()=>{ecBgImageFile=null;document.getElementById("ecBgImageInput").value="";document.getElementById("ecBgImagePreview").innerHTML="";});
+document.getElementById("ecPhotosInput").addEventListener("change",(e)=>{ecPhotosFiles=Array.from(e.target.files).slice(0,5);const prev=document.getElementById("ecPhotosPreview");if(ecPhotosFiles.length){const readers=ecPhotosFiles.map(f=>new Promise(res=>{const r=new FileReader();r.onload=ev=>res({file:f,src:ev.target.result});r.readAsDataURL(f);}));Promise.all(readers).then(imgs=>{prev.innerHTML=imgs.map((img,i)=>'<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--line)"><img src="'+img.src+'" style="width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:1"/></div>').join("");});}else{prev.innerHTML="";}});
 document.getElementById("ecSave").addEventListener("click",async()=>{
   const title=document.getElementById("ecTitleInput").value.trim();
   if(!title){setMsg(ecMsg2,"タイトルを入力してください","err");return;}
   const desc=document.getElementById("ecDescInput").value.trim();
+  const detailedDesc=document.getElementById("ecDetailDescInput").value.trim();
+  const twitterUrl=document.getElementById("ecTwitterUrl").value.trim();
+  const instagramUrl=document.getElementById("ecInstagramUrl").value.trim();
+  const facebookUrl=document.getElementById("ecFacebookUrl").value.trim();
+  const tiktokUrl=document.getElementById("ecTiktokUrl").value.trim();
+  const youtubeUrl=document.getElementById("ecYoutubeUrl").value.trim();
   const btn=document.getElementById("ecSave");btn.disabled=true;setMsg(ecMsg2,"保存中…","");
   try{
-    if(ecEditingId){const r=await db.from("events").update({title:title,description:desc,color:ecColor||null,is_pickup:ecPickup}).eq("id",ecEditingId);if(r.error)throw r.error;}
-    else{const r=await db.from("events").insert({date:ecSelected,title:title,description:desc,color:ecColor||null,is_pickup:ecPickup});if(r.error)throw r.error;}
+    let bgImageUrl=null;
+    // 背景画像アップロード
+    if(ecBgImageFile && ecEditingId){
+      const ext=ecBgImageFile.name.split('.').pop();
+      const path=`${ecEditingId}-bg.${ext}`;
+      const {error:delErr}=await db.storage.from("event-backgrounds").remove([path]).catch(()=>({error:null}));
+      const {data:upData,error:upErr}=await db.storage.from("event-backgrounds").upload(path,ecBgImageFile);
+      if(upErr)throw upErr;
+      bgImageUrl=db.storage.from("event-backgrounds").getPublicUrl(path).data.publicUrl;
+    }else if(ecBgImageFile){
+      const ext=ecBgImageFile.name.split('.').pop();
+      const tmpId=Date.now();
+      const path=`${tmpId}-bg.${ext}`;
+      const {data:upData,error:upErr}=await db.storage.from("event-backgrounds").upload(path,ecBgImageFile);
+      if(upErr)throw upErr;
+      bgImageUrl=db.storage.from("event-backgrounds").getPublicUrl(path).data.publicUrl;
+    }
+
+    const updateData={title:title,description:desc,detailed_description:detailedDesc||null,color:ecColor||null,is_pickup:ecPickup,
+      twitter_url:twitterUrl||null,instagram_url:instagramUrl||null,facebook_url:facebookUrl||null,tiktok_url:tiktokUrl||null,youtube_url:youtubeUrl||null};
+    if(bgImageUrl)updateData.background_image=bgImageUrl;
+    
+    let eventId;
+    if(ecEditingId){
+      const r=await db.from("events").update(updateData).eq("id",ecEditingId);
+      if(r.error)throw r.error;
+      eventId=ecEditingId;
+    }else{
+      const r=await db.from("events").insert({date:ecSelected,...updateData});
+      if(r.error)throw r.error;
+      eventId=r.data[0].id;
+    }
+
+    // 写真アップロード
+    if(ecPhotosFiles.length>0 && eventId){
+      const {data:existing,error:exErr}=await db.from("event_photos").select("id").eq("event_id",eventId);
+      if(!exErr && existing){await db.from("event_photos").delete().eq("event_id",eventId);}
+      for(let i=0;i<ecPhotosFiles.length;i++){
+        const f=ecPhotosFiles[i];
+        const ext=f.name.split('.').pop();
+        const path=`${eventId}-${i}.${ext}`;
+        const {data:upData,error:upErr}=await db.storage.from("event-photos").upload(path,f);
+        if(upErr)throw upErr;
+        const photoUrl=db.storage.from("event-photos").getPublicUrl(path).data.publicUrl;
+        const {error:insErr}=await db.from("event_photos").insert({event_id:eventId,image_url:photoUrl,sort_order:i});
+        if(insErr)throw insErr;
+      }
+    }
+
     btn.disabled=false;document.getElementById("ecForm").style.display="none";ecLoadMonth();
-  }catch(e){console.error(e);btn.disabled=false;setMsg(ecMsg2,"保存に失敗しました","err");}
+  }catch(e){console.error(e);btn.disabled=false;setMsg(ecMsg2,"保存に失敗しました："+e.message,"err");}
 });
 async function ecDel(id){if(!confirm("このイベントを削除しますか？"))return;try{await db.from("events").delete().eq("id",id);ecLoadMonth();}catch(e){console.error(e);alert("削除に失敗しました");}}
 window.ecDel=ecDel;

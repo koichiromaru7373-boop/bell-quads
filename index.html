@@ -262,21 +262,19 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
   background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(2px)}
 .event-modal.active{opacity:1;pointer-events:auto}
 .event-modal-content{width:100%;max-height:90dvh;background:var(--ink);border-radius:24px 24px 0 0;
-  overflow-y:auto;animation:slideUp .3s cubic-bezier(0.34, 1.56, 0.64, 1);box-shadow:0 -10px 40px rgba(0,0,0,.8);
-  background-size:cover;background-position:center;background-attachment:fixed;position:relative}
-.event-modal-content::before{content:"";position:fixed;inset:0;background:linear-gradient(to bottom, rgba(12,11,10,.3), rgba(12,11,10,.7));pointer-events:none;z-index:1;border-radius:24px 24px 0 0}
+  overflow-y:auto;animation:slideUp .3s cubic-bezier(0.34, 1.56, 0.64, 1);box-shadow:0 -10px 40px rgba(0,0,0,.8)}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .event-modal-header{display:flex;align-items:center;justify-content:space-between;padding:1.4rem;
-  border-bottom:1px solid var(--line);sticky;top:0;background:rgba(12,11,10,.95);backdrop-filter:blur(8px);z-index:20}
-.event-modal-close{background:none;border:none;color:var(--cream);font-size:1.6rem;cursor:pointer;padding:0;width:40px;height:40px;display:grid;place-items:center;position:relative;z-index:2}
+  border-bottom:1px solid var(--line);sticky;top:0;background:rgba(12,11,10,.95);backdrop-filter:blur(8px);z-index:10}
+.event-modal-close{background:none;border:none;color:var(--cream);font-size:1.6rem;cursor:pointer;padding:0;width:40px;height:40px;display:grid;place-items:center;position:relative;z-index:11}
 .event-modal-close:hover{color:var(--gold)}
-.event-modal-body{padding:1.4rem;position:relative;z-index:2}
+.event-modal-body{padding:1.4rem}
 .event-bg{display:none}
-.event-detail-head{margin-bottom:1.6rem;position:relative;z-index:2}
+.event-detail-head{margin-bottom:1.6rem}
 .event-detail-date{color:var(--gold);font-family:"Cormorant Garamond",serif;font-size:.95rem;letter-spacing:.1em;margin-bottom:.5rem}
 .event-detail-title{font-family:"Cormorant Garamond",serif;font-size:1.8rem;font-weight:700;line-height:1.2;margin-bottom:.8rem;color:var(--cream)}
-.event-detail-desc{color:var(--cream-dim);font-size:.95rem;line-height:1.7;white-space:pre-wrap;margin-bottom:1.4rem;position:relative;z-index:2}
-.event-photos{margin-bottom:1.6rem;position:relative;z-index:2}
+.event-detail-desc{color:var(--cream-dim);font-size:.95rem;line-height:1.7;white-space:pre-wrap;margin-bottom:1.4rem}
+.event-photos{margin-bottom:1.6rem}
 .event-photos-title{color:var(--gold);font-size:.85rem;letter-spacing:.1em;font-weight:700;margin-bottom:.8rem;text-transform:uppercase}
 .event-photos-slider{position:relative;border-radius:12px;overflow:hidden;background:rgba(0,0,0,.3);border:1px solid var(--line)}
 .event-photo-main{width:100%;aspect-ratio:9/16;object-fit:cover;display:block}
@@ -284,11 +282,11 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
 .event-photo-thumb{width:60px;height:60px;border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid transparent;opacity:.6;transition:opacity .2s,border-color .2s}
 .event-photo-thumb.active{opacity:1;border-color:var(--gold)}
 .event-photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.event-sns{margin:1.8rem 0;position:relative;z-index:2}
+.event-sns{margin:1.8rem 0}
 .event-sns-title{color:var(--gold);font-size:.85rem;letter-spacing:.1em;font-weight:700;margin-bottom:.8rem;text-transform:uppercase}
 .event-sns-list{display:flex;gap:.7rem;flex-wrap:wrap}
 .sns-btn{display:inline-flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:999px;
-  background:rgba(212,175,55,.1);border:1px solid var(--line);color:var(--cream);transition:all .2s;text-decoration:none;font-size:1.3rem;position:relative;z-index:2}
+  background:rgba(212,175,55,.1);border:1px solid var(--line);color:var(--cream);transition:all .2s;text-decoration:none;font-size:1.3rem}
 .sns-btn:hover{background:var(--gold);color:var(--ink);border-color:var(--gold)}
 .sns-btn.twitter{background:rgba(29,155,240,.15);border-color:rgba(29,155,240,.3);color:#1d9bf0}
 .sns-btn.twitter:hover{background:#1d9bf0;color:#fff}
@@ -511,8 +509,24 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
       </div>
 
       <!-- 基本説明（CMS由来） -->
-      <div style="margin-top:2rem;padding-top:1.4rem;border-top:1px solid var(--line)">
+      <div style="margin-top:2rem;padding-top:1.4rem;border-top:1px solid var(--line);margin-bottom:2rem">
         <p id="eventDetailDescBasic" style="color:var(--cream-dim);font-size:.92rem;line-height:1.7"></p>
+      </div>
+
+      <!-- 下部固定フッター（LINE、Instagram、X） -->
+      <div style="position:sticky;bottom:0;background:linear-gradient(to top,var(--ink),rgba(12,11,10,.98));padding:1.4rem 0 0;margin:0 -1.4rem -1.4rem;padding-left:1.4rem;padding-right:1.4rem;border-top:1px solid var(--line)">
+        <div style="color:var(--gold);font-size:.85rem;letter-spacing:.1em;font-weight:700;margin-bottom:1rem;text-transform:uppercase">お店をフォロー</div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;padding-bottom:1rem">
+          <a href="https://lin.ee/RqhAbyF" target="_blank" rel="noopener noreferrer" style="flex:1;min-width:100px;display:flex;align-items:center;justify-content:center;padding:.8rem;background:rgba(0,200,0,.15);border:1px solid rgba(0,200,0,.3);color:#00c800;border-radius:12px;text-decoration:none;font-weight:700;transition:all .2s;font-size:.9rem">
+            LINE
+          </a>
+          <a href="https://www.instagram.com/bellquads_poker?igsh=MXZwajM2M29lZjlzaw%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" style="flex:1;min-width:100px;display:flex;align-items:center;justify-content:center;padding:.8rem;background:linear-gradient(135deg,rgba(193,53,132,.15),rgba(253,105,107,.15));border:1px solid rgba(193,53,132,.3);color:#e4405f;border-radius:12px;text-decoration:none;font-weight:700;transition:all .2s;font-size:.9rem">
+            Instagram
+          </a>
+          <a href="https://x.com/bellquads_poker?s=11" target="_blank" rel="noopener noreferrer" style="flex:1;min-width:100px;display:flex;align-items:center;justify-content:center;padding:.8rem;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:12px;text-decoration:none;font-weight:700;transition:all .2s;font-size:.9rem">
+            X
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -856,18 +870,6 @@ async function openEventDetail(eventId){
     const snsWrap = document.getElementById("eventSnsWrap");
     const snsList = document.getElementById("eventSnsList");
 
-    // 背景画像（モーダルコンテンツの背景に設定）
-    const modalContent = document.querySelector(".event-modal-content");
-    if(event.background_image){
-      modalContent.style.backgroundImage = `url('${event.background_image}')`;
-      modalContent.style.backgroundSize = "cover";
-      modalContent.style.backgroundPosition = "center";
-      modalContent.style.backgroundAttachment = "fixed";
-    }else{
-      modalContent.style.backgroundImage = "none";
-      modalContent.style.backgroundColor = "var(--ink)";
-    }
-
     // 日付・タイトル
     const d = new Date(event.date+"T00:00:00");
     const WK = ["日","月","火","水","木","金","土"];
@@ -932,6 +934,12 @@ async function openEventDetail(eventId){
     modal.classList.add("active");
     console.log("✨ Modal class updated. Current classes:", modal.className);
     document.body.style.overflow = "hidden";
+    
+    // クリック可能な状態を確保
+    setTimeout(()=>{
+      modal.style.pointerEvents = "auto";
+      console.log("✅ Modal is now clickable");
+    }, 100);
   }catch(e){
     console.error("Error loading event detail:", e);
     alert("イベント詳細の取得に失敗しました");
@@ -939,19 +947,29 @@ async function openEventDetail(eventId){
 }
 
 function closeEventDetail(){
+  console.log("🔴 closeEventDetail called");
   const modal = document.getElementById("eventModal");
-  const modalContent = document.querySelector(".event-modal-content");
+  if(!modal){console.error("❌ Modal element not found"); return;}
+  console.log("📴 Removing active class");
   modal.classList.remove("active");
   document.body.style.overflow = "";
-  // 背景画像をリセット
-  modalContent.style.backgroundImage = "none";
-  modalContent.style.backgroundColor = "var(--ink)";
   currentEventDetail = null;
+  console.log("✅ Modal closed successfully");
 }
 
-document.getElementById("eventModalClose").addEventListener("click", closeEventDetail);
+document.getElementById("eventModalClose").addEventListener("click", (e)=>{
+  e.preventDefault();
+  e.stopPropagation();
+  console.log("🎯 Close button clicked!");
+  closeEventDetail();
+});
+
+// モーダル背景クリックで閉じる（ただしバツボタン操作を除外）
 document.getElementById("eventModal").addEventListener("click", (e)=>{
-  if(e.target.id === "eventModal") closeEventDetail();
+  if(e.target.id === "eventModal"){
+    console.log("🎯 Modal background clicked");
+    closeEventDetail();
+  }
 });
 
 // 初期化確認ログ

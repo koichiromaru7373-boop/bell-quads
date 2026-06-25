@@ -510,7 +510,12 @@ input::placeholder{color:#7fa28d}
           <label class="fld">イベント写真（最大5枚）</label>
           <input id="ecPhotosInput" type="file" accept="image/*" multiple style="cursor:pointer" />
           <div id="ecPhotosPreview" style="margin-top:.8rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:.6rem"></div>
-          
+
+          <!-- 背景画像（任意・1枚） -->
+          <label class="fld">背景画像（任意・詳細モーダル上部に表示）</label>
+          <input id="ecBgInput" type="file" accept="image/*" style="cursor:pointer" />
+          <div id="ecBgPreview" style="margin-top:.8rem"></div>
+
           <!-- カレンダーの色 -->
           <label class="fld">カレンダーの色</label>
           <div class="color-row" id="ecColors"></div>
@@ -758,7 +763,7 @@ async function loadHist(id){
     const {data,error}=await db.from("history").select("*").eq("user_id",id).order("created_at",{ascending:false}).limit(8);
     if(error)throw error;
     if(!data||!data.length){w.innerHTML='<div class="empty">まだ履歴がありません</div>';return;}
-    w.innerHTML=data.map(h=>{const isIn=h.action==="チャージ";const d=new Date(h.created_at);
+    w.innerHTML=data.map(h=>{const isIn=(h.action==="チャージ"||h.action==="マイル付与");const d=new Date(h.created_at);
       const dt=(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
       return '<div class="hrow"><div style="display:flex;gap:.6rem;align-items:center"><span class="tag '+(isIn?"in":"out")+'">'+esc(h.action)+'</span><span class="tiny">'+dt+(h.staff_name?" ・"+esc(h.staff_name):"")+'</span></div><span class="amt '+(isIn?"in":"out")+'">'+(isIn?"+":"-")+yen(h.amount)+'</span></div>';
     }).join("");
@@ -1110,12 +1115,9 @@ async function confirmSettle(){
   const btn=document.getElementById("btnSetConfirm");btn.disabled=true;
   setMsg(document.getElementById("setMsg"),"処理中…","");
   try{
-    // リング分のマイルを計算
-    let totalRingMiles = 0;
-    const ringItems = (curOrders||[]).filter(o=>o.isRing);
-    ringItems.forEach(item=>{
-      if(item.ringMiles){totalRingMiles += item.ringMiles;}
-    });
+    // リング分の付与予定マイルを取得（カート追加時に保存済み）
+    const ringPending = getRingPending();
+    const totalRingMiles = ringPending[curTab.id] || 0;
     
     // マイル付与履歴の記録
     if(useM>0){
@@ -1123,14 +1125,15 @@ async function confirmSettle(){
       if(he)throw he;
     }
     
-    // リング分のマイルを付与
+    // リング分のマイルを付与（当日付与・type:ring で翌日から使用可）
     if(totalRingMiles > 0){
-      const {error:ringError}=await db.from("history").insert({user_id:curTab.user_id,action:"マイル付与",amount:totalRingMiles,staff_name:currentStaff,type:"ring"});
+      const {error:ringError}=await db.from("history").insert({user_id:curTab.user_id,action:"チャージ",amount:totalRingMiles,staff_name:currentStaff,type:"ring"});
       if(ringError)throw ringError;
     }
     
     const {error:te}=await db.from("tabs").update({status:"settled",settled_by:currentStaff,settled_at:new Date().toISOString(),total:setTotalV,miles_used:useM,cash_paid:cash}).eq("id",curTab.id);
     if(te)throw te;
+    clearRingPending(curTab.id);
     btn.disabled=false;
     setMsg(document.getElementById("setMsg"),"精算完了：マイル "+yen(useM)+"pt ／ 現金 ¥"+yen(cash)+(totalRingMiles>0?" ／ リング付与 "+yen(totalRingMiles)+"pt":""),"ok");
     setTimeout(()=>{showActiveView("list");loadActive();},1400);
@@ -1296,12 +1299,19 @@ function renderEcTmpl(){const el=document.getElementById("ecTemplates");if(!ecTm
 function ecApplyTmpl(i){const t=ecTmpl[i];if(!t)return;document.getElementById("ecTitleInput").value=t.name||"";document.getElementById("ecDescInput").value=t.description||"";ecColor=t.color||"";renderEcColors();}window.ecApplyTmpl=ecApplyTmpl;
 function renderEcPickup(){const b=document.getElementById("ecPickup");b.classList.toggle("on",ecPickup);b.textContent=ecPickup?"★ PICK UPに表示中":"表示しない";}
 document.getElementById("ecPickup").addEventListener("click",()=>{ecPickup=!ecPickup;renderEcPickup();});
-function ecAdd(){ecEditingId=null;document.getElementById("ecFormTitle").textContent="イベントを追加";const d=new Date(ecSelected+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value="";document.getElementById("ecDescInput").value="";document.getElementById("ecDetailDescInput").value="";document.getElementById("ecTwitterUrl").value="";document.getElementById("ecInstagramUrl").value="";document.getElementById("ecFacebookUrl").value="";document.getElementById("ecTiktokUrl").value="";document.getElementById("ecYoutubeUrl").value="";document.getElementById("ecPhotosInput").value="";document.getElementById("ecPhotosPreview").innerHTML="";ecColor="";ecPickup=false;ecPhotosFiles=[];renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
+function ecAdd(){ecEditingId=null;document.getElementById("ecFormTitle").textContent="イベントを追加";const d=new Date(ecSelected+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value="";document.getElementById("ecDescInput").value="";document.getElementById("ecDetailDescInput").value="";document.getElementById("ecTwitterUrl").value="";document.getElementById("ecInstagramUrl").value="";document.getElementById("ecFacebookUrl").value="";document.getElementById("ecTiktokUrl").value="";document.getElementById("ecYoutubeUrl").value="";document.getElementById("ecPhotosInput").value="";document.getElementById("ecPhotosPreview").innerHTML="";ecColor="";ecPickup=false;ecPhotosFiles=[];ecBgFile=null;document.getElementById("ecBgInput").value="";document.getElementById("ecBgPreview").innerHTML="";renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
 window.ecAdd=ecAdd;
-function ecEdit(id){const ev=(ecEvents[ecSelected]||[]).find(e=>String(e.id)===String(id));if(!ev)return;ecEditingId=ev.id;document.getElementById("ecFormTitle").textContent="イベントを編集";const d=new Date(ev.date+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value=ev.title||"";document.getElementById("ecDescInput").value=ev.description||"";document.getElementById("ecDetailDescInput").value=ev.detailed_description||"";document.getElementById("ecTwitterUrl").value=ev.twitter_url||"";document.getElementById("ecInstagramUrl").value=ev.instagram_url||"";document.getElementById("ecFacebookUrl").value=ev.facebook_url||"";document.getElementById("ecTiktokUrl").value=ev.tiktok_url||"";document.getElementById("ecYoutubeUrl").value=ev.youtube_url||"";ecColor=ev.color||"";ecPickup=!!ev.is_pickup;ecPhotosFiles=[];document.getElementById("ecPhotosInput").value="";renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
+function ecEdit(id){const ev=(ecEvents[ecSelected]||[]).find(e=>String(e.id)===String(id));if(!ev)return;ecEditingId=ev.id;document.getElementById("ecFormTitle").textContent="イベントを編集";const d=new Date(ev.date+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value=ev.title||"";document.getElementById("ecDescInput").value=ev.description||"";document.getElementById("ecDetailDescInput").value=ev.detailed_description||"";document.getElementById("ecTwitterUrl").value=ev.twitter_url||"";document.getElementById("ecInstagramUrl").value=ev.instagram_url||"";document.getElementById("ecFacebookUrl").value=ev.facebook_url||"";document.getElementById("ecTiktokUrl").value=ev.tiktok_url||"";document.getElementById("ecYoutubeUrl").value=ev.youtube_url||"";ecColor=ev.color||"";ecPickup=!!ev.is_pickup;ecPhotosFiles=[];document.getElementById("ecPhotosInput").value="";ecBgFile=null;document.getElementById("ecBgInput").value="";document.getElementById("ecBgPreview").innerHTML=ev.background_image?'<img src="'+esc(ev.background_image)+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"/><div class="tiny" style="margin-top:.3rem">現在の背景画像（変更する場合のみ選択）</div>':"";renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
 window.ecEdit=ecEdit;
 document.getElementById("ecCancel").addEventListener("click",()=>{document.getElementById("ecForm").style.display="none";});
 let ecPhotosFiles=[];
+let ecBgFile=null;
+document.getElementById("ecBgInput").addEventListener("change",(e)=>{
+  ecBgFile=(e.target.files&&e.target.files[0])||null;
+  const prev=document.getElementById("ecBgPreview");
+  if(ecBgFile){const r=new FileReader();r.onload=ev=>{prev.innerHTML='<img src="'+ev.target.result+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"/>';};r.readAsDataURL(ecBgFile);}
+  else{prev.innerHTML="";}
+});
 document.getElementById("ecPhotosInput").addEventListener("change",(e)=>{ecPhotosFiles=Array.from(e.target.files).slice(0,5);const prev=document.getElementById("ecPhotosPreview");if(ecPhotosFiles.length){const readers=ecPhotosFiles.map(f=>new Promise(res=>{const r=new FileReader();r.onload=ev=>res({file:f,src:ev.target.result});r.readAsDataURL(f);}));Promise.all(readers).then(imgs=>{prev.innerHTML=imgs.map((img,i)=>'<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--line)"><img src="'+img.src+'" style="width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:1"/></div>').join("");});}else{prev.innerHTML="";}});
 document.getElementById("ecSave").addEventListener("click",async()=>{
   const title=document.getElementById("ecTitleInput").value.trim();
@@ -1317,16 +1327,26 @@ document.getElementById("ecSave").addEventListener("click",async()=>{
   try{
     const updateData={title:title,description:desc,detailed_description:detailedDesc||null,color:ecColor||null,is_pickup:ecPickup,
       twitter_url:twitterUrl||null,instagram_url:instagramUrl||null,facebook_url:facebookUrl||null,tiktok_url:tiktokUrl||null,youtube_url:youtubeUrl||null};
-    
+
+    // 背景画像のアップロード（選択時のみ）
+    if(ecBgFile){
+      const bext=(ecBgFile.name.split('.').pop()||'jpg');
+      const bpath=`bg-${ecEditingId||'new'}-${Date.now()}.${bext}`;
+      const {error:bgErr}=await db.storage.from("event-backgrounds").upload(bpath,ecBgFile,{upsert:true});
+      if(bgErr)throw bgErr;
+      updateData.background_image=db.storage.from("event-backgrounds").getPublicUrl(bpath).data.publicUrl;
+    }
+
     let eventId;
     if(ecEditingId){
       const r=await db.from("events").update(updateData).eq("id",ecEditingId);
       if(r.error)throw r.error;
       eventId=ecEditingId;
     }else{
-      const r=await db.from("events").insert({date:ecSelected,...updateData});
+      const r=await db.from("events").insert({date:ecSelected,...updateData}).select();
       if(r.error)throw r.error;
-      eventId=r.data[0].id;
+      eventId=(r.data&&r.data[0])?r.data[0].id:null;
+      if(!eventId)throw new Error("イベントIDの取得に失敗しました");
     }
 
     // 写真アップロード
@@ -1581,11 +1601,22 @@ window.przDel=przDel;
 
 
 /* ===== リング買い足し機能 ===== */
-let ringBuyIns = {}; // {user_id: [{bb: 100, fee: 2000}, ...]}
+let ringBuyIns = {}; // {tab_id: [{bb: 100, fee: 2000}, ...]}
 let selectedRingPlayer = null;
 let selectedRingBB = null;
 
+/* 買い足し内容・付与予定マイルを localStorage に保持（リロード/タブ移動でも消えない） */
+const RING_BUYINS_KEY = "bq_ring_buyins";
+const RING_PENDING_MILES_KEY = "bq_ring_pending_miles";
+function saveRingBuyIns(){try{localStorage.setItem(RING_BUYINS_KEY,JSON.stringify(ringBuyIns));}catch(e){}}
+function loadRingBuyInsLS(){try{const s=localStorage.getItem(RING_BUYINS_KEY);ringBuyIns=s?(JSON.parse(s)||{}):{};}catch(e){ringBuyIns={};}}
+function getRingPending(){try{return JSON.parse(localStorage.getItem(RING_PENDING_MILES_KEY)||"{}")||{};}catch(e){return {};}}
+function addRingPending(tabId,miles){if(!miles||miles<=0)return;const p=getRingPending();p[tabId]=(p[tabId]||0)+miles;try{localStorage.setItem(RING_PENDING_MILES_KEY,JSON.stringify(p));}catch(e){}}
+function clearRingPending(tabId){const p=getRingPending();delete p[tabId];try{localStorage.setItem(RING_PENDING_MILES_KEY,JSON.stringify(p));}catch(e){}}
+
 async function loadRingBuyInTab(){
+  // 買い足しデータを復元（リロード/タブ移動対策）
+  loadRingBuyInsLS();
   // リング設定を読み込み
   const saved = localStorage.getItem(RING_SETTINGS_KEY);
   if(saved){
@@ -1650,6 +1681,7 @@ document.getElementById("ringBuyInConfirm").addEventListener("click",()=>{
   const fee = ringSettings.prices[selectedRingBB];
   if(!ringBuyIns[selectedRingPlayer.id]){ringBuyIns[selectedRingPlayer.id] = [];}
   ringBuyIns[selectedRingPlayer.id].push({bb: selectedRingBB, fee: fee});
+  saveRingBuyIns();
   
   document.getElementById("ringBuyInForm").style.display = "none";
   renderRingBuyInHistory();
@@ -1685,6 +1717,7 @@ function removeRingBuyIn(userId, idx){
     ringBuyIns[userId].splice(idx, 1);
     if(!ringBuyIns[userId].length){delete ringBuyIns[userId];}
   }
+  saveRingBuyIns();
   renderRingBuyInHistory();
 }
 window.removeRingBuyIn = removeRingBuyIn;
@@ -1706,7 +1739,7 @@ document.getElementById("ringFinalBB").addEventListener("input",()=>{
   document.getElementById("ringMilesGrant").textContent = Math.floor(miles);
 });
 
-document.getElementById("ringSettleConfirm").addEventListener("click",()=>{
+document.getElementById("ringSettleConfirm").addEventListener("click",async ()=>{
   if(!selectedRingPlayer){alert("プレイヤーが選択されていません");return;}
   const buyin = ringBuyIns[selectedRingPlayer.id];
   if(!buyin||!buyin.length){alert("買い足しがありません");return;}
@@ -1718,32 +1751,40 @@ document.getElementById("ringSettleConfirm").addEventListener("click",()=>{
   const fee = Math.max(0, totalEntry - discount);
   const miles = (discount > totalEntry) ? Math.floor((discount - totalEntry) / 1000) : 0;
   
-  // カートに追加（リング精算の履歴を保存）
-  if(!window.curOrders){window.curOrders = [];}
+  // プレイヤー情報を保存（後で使うため）
+  const playerName = selectedRingPlayer.user_name;
+  const playerId = selectedRingPlayer.id;        // = tabs.id（この伝票に計上する）
   
-  // リング精算レコードを作成
-  const ringRecord = {
-    id: "ring_" + Date.now(),
-    item_name: selectedRingPlayer.user_name + " (リング)",
-    price: fee,
-    qty: 1,
-    isRing: true,
-    ringFinalBB: finalBB,
-    ringTotalEntry: totalEntry,
-    ringMiles: miles,
-    userId: selectedRingPlayer.id
-  };
+  // DB に追加（選択したプレイヤーの伝票にリング注文として保存）
+  try{
+    const {error} = await db.from("tab_orders").insert({
+      tab_id: playerId,
+      name: playerName + " (リング)",
+      price: fee,
+      qty: 1
+    });
+    if(error)throw error;
+  }catch(e){
+    console.error("リング注文保存エラー", e);
+    alert("リング精算の保存に失敗しました");
+    return;
+  }
   
-  window.curOrders.push(ringRecord);
+  // 付与予定マイルをこの伝票に紐づけて保存（精算時にまとめて付与）
+  if(miles > 0){ addRingPending(playerId, miles); }
   
   // UI 更新
-  delete ringBuyIns[selectedRingPlayer.id];
+  delete ringBuyIns[playerId];
+  saveRingBuyIns();
   document.getElementById("ringBuyInForm").style.display = "none";
   selectedRingPlayer = null;
   selectedRingBB = null;
   loadRingBuyInTab();
   
-  setMsg(document.getElementById("ringSettleMsg"), selectedRingPlayer.user_name + " をカートに追加しました ✓", "ok");
+  setMsg(document.getElementById("ringSettleMsg"), playerName + " をカートに追加しました ✓", "ok");
+  
+  // 表示中の伝票が同じプレイヤーなら再読み込み
+  if(curTab && curTab.id === playerId){ await loadOrders(); }
   
   // プレイ中タブに戻す
   setTimeout(()=>switchTab("active"), 1000);

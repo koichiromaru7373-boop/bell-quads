@@ -267,11 +267,11 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
   overflow-y:auto;animation:slideUp .3s cubic-bezier(0.34, 1.56, 0.64, 1);box-shadow:0 -10px 40px rgba(0,0,0,.8)}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .event-modal-header{display:flex;align-items:center;justify-content:space-between;padding:1.4rem;
-  border-bottom:1px solid var(--line);sticky;top:0;background:rgba(12,11,10,.95);backdrop-filter:blur(8px);z-index:10}
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(12,11,10,.95);backdrop-filter:blur(8px);z-index:10}
 .event-modal-close{background:none;border:none;color:var(--cream);font-size:1.6rem;cursor:pointer;padding:0;width:40px;height:40px;display:grid;place-items:center;position:relative;z-index:11}
 .event-modal-close:hover{color:var(--gold)}
 .event-modal-body{padding:1.4rem}
-.event-bg{display:none}
+.event-bg{display:none;width:100%;aspect-ratio:16/9;background-size:cover;background-position:center;border-radius:14px;border:1px solid var(--line);margin-bottom:1.4rem}
 .event-detail-head{margin-bottom:1.6rem}
 .event-detail-date{color:var(--gold);font-family:"Cormorant Garamond",serif;font-size:.95rem;letter-spacing:.1em;margin-bottom:.5rem}
 .event-detail-title{font-family:"Cormorant Garamond",serif;font-size:1.8rem;font-weight:700;line-height:1.2;margin-bottom:.8rem;color:var(--cream)}
@@ -697,7 +697,7 @@ function selectDate(key){
     document.getElementById("calDetail").innerHTML = `<div class="dt-date">${label}</div><div class="cal-empty">この日の予定はありません。</div>`;
     return;
   }
-  const items = evs.map(ev=>`<div class="cal-event" style="border-left:3px solid ${colorCss(ev.color)};padding-left:.8rem"><h3>${escapeHtml(ev.title)}</h3>${ev.description ? `<p>${nl2br(ev.description)}</p>` : ""}</div>`).join("");
+  const items = evs.map(ev=>`<div class="cal-event" style="border-left:3px solid ${colorCss(ev.color)};padding-left:.8rem;cursor:pointer" onclick="openEventDetail('${ev.id}')"><h3>${escapeHtml(ev.title)} <span style="margin-left:auto;color:var(--gold);font-size:.78rem;font-weight:700">詳細 ›</span></h3>${ev.description ? `<p>${nl2br(ev.description)}</p>` : ""}</div>`).join("");
   document.getElementById("calDetail").innerHTML = `<div class="dt-date">${label}</div>${items}`;
 }
 window.selectDate = selectDate;
@@ -936,6 +936,16 @@ async function openEventDetail(eventId){
     dateEl.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 (${WK[d.getDay()]})`;
     titleEl.textContent = event.title;
 
+    // 背景画像
+    if(event.background_image){
+      bgCont.style.display = "block";
+      bgCont.style.backgroundImage = `url('${event.background_image}')`;
+      bgCont.textContent = "";
+    }else{
+      bgCont.style.display = "none";
+      bgCont.style.backgroundImage = "";
+    }
+
     // 詳細説明
     if(event.detailed_description){
       descEl.style.display = "block";
@@ -1029,6 +1039,10 @@ function closeEventDetail(){
   if(photoMain){
     photoMain.src = "";
   }
+
+  // 背景画像をクリア
+  const bgCont = document.getElementById("eventBgContainer");
+  if(bgCont){ bgCont.style.display = "none"; bgCont.style.backgroundImage = ""; }
   
   // テキストコンテンツをクリア
   const dateEl = document.getElementById("eventDetailDate");

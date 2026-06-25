@@ -1585,7 +1585,7 @@ let ringBuyIns = {}; // {user_id: [{bb: 100, fee: 2000}, ...]}
 let selectedRingPlayer = null;
 let selectedRingBB = null;
 
-function loadRingBuyInTab(){
+async function loadRingBuyInTab(){
   // リング設定を読み込み
   const saved = localStorage.getItem(RING_SETTINGS_KEY);
   if(saved){
@@ -1598,28 +1598,41 @@ function loadRingBuyInTab(){
   
   // プレイ中のプレイヤーリストを取得
   const activeList = document.getElementById("ringPlayerList");
-  const players = (activeUsers && activeUsers.length) ? activeUsers : [];
-  
-  activeList.innerHTML = players.map(p=>`
-    <button class="btn" onclick="openRingBuyIn('${p.id}')" style="padding:.8rem;text-align:center;background:rgba(212,175,55,.1);border:1px solid var(--line);border-radius:12px">
-      <div style="font-weight:700">${esc(p.user_name)}</div>
-      <div style="font-size:.75rem;color:var(--cream-dim);margin-top:.3rem">
-        ${(ringBuyIns[p.id]&&ringBuyIns[p.id].length)?ringBuyIns[p.id].length+'回':'買い足しなし'}
-      </div>
-    </button>
-  `).join("");
+  try{
+    const {data:tabs} = await db.from("tabs").select("*").eq("status","open").order("opened_at",{ascending:true});
+    const players = tabs || [];
+    
+    activeList.innerHTML = players.map(p=>`
+      <button class="btn" onclick="openRingBuyIn('${p.id}')" style="padding:.8rem;text-align:center;background:rgba(212,175,55,.1);border:1px solid var(--line);border-radius:12px">
+        <div style="font-weight:700">${esc(p.user_name)}</div>
+        <div style="font-size:.75rem;color:var(--cream-dim);margin-top:.3rem">
+          ${(ringBuyIns[p.id]&&ringBuyIns[p.id].length)?ringBuyIns[p.id].length+'回':'買い足しなし'}
+        </div>
+      </button>
+    `).join("");
+  }catch(e){
+    console.error("プレイヤー取得エラー", e);
+    activeList.innerHTML = '<div class="empty">プレイヤーを取得できませんでした</div>';
+  }
   
   renderRingBuyInHistory();
 }
 window.loadRingBuyInTab = loadRingBuyInTab;
 
-function openRingBuyIn(userId){
-  selectedRingPlayer = activeUsers.find(p=>p.id===userId);
-  selectedRingBB = null;
-  document.getElementById("ringPlayerName").textContent = selectedRingPlayer.user_name;
-  document.getElementById("ringBuyInForm").style.display = "block";
-  document.getElementById("ringFinalBB").value = "";
-  setMsg(document.getElementById("ringSettleMsg"), "", "");
+async function openRingBuyIn(userId){
+  try{
+    const {data:tabs} = await db.from("tabs").select("*").eq("id", userId).single();
+    if(!tabs){alert("プレイヤーが見つかりません");return;}
+    selectedRingPlayer = tabs;
+    selectedRingBB = null;
+    document.getElementById("ringPlayerName").textContent = selectedRingPlayer.user_name;
+    document.getElementById("ringBuyInForm").style.display = "block";
+    document.getElementById("ringFinalBB").value = "";
+    setMsg(document.getElementById("ringSettleMsg"), "", "");
+  }catch(e){
+    console.error("プレイヤー取得エラー", e);
+    alert("プレイヤー情報の取得に失敗しました");
+  }
 }
 window.openRingBuyIn = openRingBuyIn;
 

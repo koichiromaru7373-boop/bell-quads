@@ -344,6 +344,10 @@ input::placeholder{color:#7fa28d}
         <h3>♠ 最近の履歴</h3>
         <div id="histList"><div class="empty">読み込み中…</div></div>
       </div>
+      <div class="hist" id="tkHistWrap" style="display:none">
+        <h3>🎟 チケットの履歴</h3>
+        <div id="tkHistList"><div class="empty">読み込み中…</div></div>
+      </div>
       <div class="btn-row">
         <button class="btn btn-ghost" id="btnRefresh">更新</button>
         <button class="btn btn-red" id="btnLogout">ログアウト</button>
@@ -397,6 +401,9 @@ input::placeholder{color:#7fa28d}
           <div class="eyebrow" style="margin:.6rem 0 .4rem">伝票（注文）</div>
           <div id="orderList"><div class="empty">注文はまだありません</div></div>
           <div class="totbar"><span class="tl">小計</span><span class="tv">¥<span id="tabTotal">0</span></span></div>
+          <div class="eyebrow" style="margin:.4rem 0">トーナメント</div>
+          <select id="tabTnSel"></select>
+          <div class="menugrid" id="tabTnFees" style="margin-top:.5rem"></div>
           <div class="eyebrow" style="margin:.4rem 0">メニュー（タップで追加）</div>
           <div class="menugrid" id="menuGrid"></div>
           <div class="btn-row">
@@ -904,7 +911,7 @@ async function enterMember(u){
   const box=document.getElementById("qrBox");box.innerHTML="";
   qrInst=new QRCode(box,{text:String(u.id),width:170,height:170,colorDark:"#0f3320",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.M});
   await loadMile(u.id); await loadHist(u.id); await loadActiveTab(u.id);
-  await loadTicket(u.id); await loadTicketUseOptions();
+  await loadTicket(u.id); await loadTicketUseOptions(); await loadTkHist(u.id);
   await loadVipBadge(u.id); initMemberLeaderboard(u.id);
 }
 async function loadActiveTab(id){
@@ -1009,7 +1016,7 @@ async function tuDoEntry(o){
     await db.from("tab_orders").insert({tab_id:tab.id,name:o.rowName,price:o.price||0,qty:1,pool_value:o.poolVal||0,charge:o.price||0,is_single:!!o.isSingle});
     tuHideShort();tuCtx=null;
     setMsg(tuMsg,o.successMsg,"ok");
-    await loadTicket(mUser.id); await loadActiveTab(mUser.id); await loadTicketUseOptions();
+    await loadTicket(mUser.id); await loadActiveTab(mUser.id); await loadTicketUseOptions(); await loadTkHist(mUser.id);
   }catch(e){console.error(e);setMsg(tuMsg,"使用に失敗しました","err");}
 }
 document.getElementById("tuUse").addEventListener("click",async()=>{
@@ -1080,7 +1087,23 @@ async function loadHist(id){
     }).join("");
   }catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}
 }
-document.getElementById("btnRefresh").addEventListener("click",async()=>{const id=localStorage.getItem(LS_USER);if(id){await loadMile(id);await loadHist(id);await loadActiveTab(id);await loadTicket(id);await loadVipBadge(id);const sel=document.getElementById("mLbMonth");if(sel&&sel.value)loadMemberLeaderboard(id,sel.value);}});
+async function loadTkHist(id){
+  const wrap=document.getElementById("tkHistWrap");
+  const w=document.getElementById("tkHistList");
+  if(!wrap||!w)return;
+  try{
+    const {data,error}=await db.from("ticket_ledger").select("*").eq("user_id",id).order("created_at",{ascending:false}).limit(10);
+    if(error)throw error;
+    if(!data||!data.length){wrap.style.display="none";return;}
+    wrap.style.display="block";
+    w.innerHTML=data.map(h=>{const isIn=h.delta>0;const d=new Date(h.created_at);
+      const dt=(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+      const label=esc(h.reason||(isIn?"付与":"使用"));
+      return '<div class="hrow"><div style="display:flex;gap:.6rem;align-items:center"><span class="tag '+(isIn?"in":"out")+'">'+label+'</span><span class="tiny">'+dt+(h.staff_name?" ・"+esc(h.staff_name):"")+'</span></div><span class="amt '+(isIn?"in":"out")+'">'+(isIn?"+":"")+yen(h.delta)+'枚</span></div>';
+    }).join("");
+  }catch(e){console.error(e);wrap.style.display="none";}
+}
+document.getElementById("btnRefresh").addEventListener("click",async()=>{const id=localStorage.getItem(LS_USER);if(id){await loadMile(id);await loadHist(id);await loadActiveTab(id);await loadTicket(id);await loadTkHist(id);await loadVipBadge(id);const sel=document.getElementById("mLbMonth");if(sel&&sel.value)loadMemberLeaderboard(id,sel.value);}});
 /* マイページ表示中は会計を自動更新（プレイ中の金額をライブ反映） */
 setInterval(()=>{const id=localStorage.getItem(LS_USER);if(id&&document.getElementById("screen-member").classList.contains("active"))loadActiveTab(id);},15000);
 document.getElementById("btnLogout").addEventListener("click",()=>{localStorage.removeItem(LS_USER);document.getElementById("loginName").value="";showScreen("screen-login");});
@@ -1498,6 +1521,7 @@ async function openTab(tabId){
     document.getElementById("tabWho").innerHTML=esc(curTab.user_name)+'<small>受付: '+esc(curTab.opened_by||"-")+'</small>';
     await loadMenuButtons();
     await loadOrders();
+    await loadTabTournaments();
     setMsg(document.getElementById("tabMsg"),"","");
   }catch(e){console.error(e);}
 }
@@ -1507,6 +1531,105 @@ async function loadMenuButtons(){
   menuCache=data||[];
   document.getElementById("menuGrid").innerHTML=menuCache.map(m=>'<button class="mbtn" onclick="addOrder(\''+m.id+'\')">'+esc(m.name)+'<b>¥'+yen(m.price)+'</b></button>').join("");
 }
+/* ===== 伝票：トーナメント選択＋料金ボタン ===== */
+let tabTournaments=[], tabTnFeeCache={}, tabTkValue=5000;
+async function loadTabTournaments(){
+  const sel=document.getElementById("tabTnSel");if(!sel)return;
+  try{const sv=await db.from("ticket_settings").select("ticket_value_yen").eq("id",1).limit(1);tabTkValue=(sv.data&&sv.data[0]&&sv.data[0].ticket_value_yen)||5000;}catch(e){console.error(e);}
+  try{const r=await db.from("tournament_templates").select("*").eq("active",true).order("sort_order",{ascending:true});tabTournaments=r.data||[];}
+  catch(e){console.error(e);tabTournaments=[];}
+  sel.innerHTML='<option value="">（トーナメント未選択）</option>'+tabTournaments.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join("");
+  sel.value=curTab.tournament_id||"";
+  await renderTabTnFees();
+}
+document.getElementById("tabTnSel").addEventListener("change",async()=>{
+  const sel=document.getElementById("tabTnSel");
+  const v=sel.value||null;
+  try{await db.from("tabs").update({tournament_id:v}).eq("id",curTab.id);curTab.tournament_id=v;}
+  catch(e){console.error(e);}
+  await renderTabTnFees();
+});
+async function renderTabTnFees(){
+  const w=document.getElementById("tabTnFees");if(!w)return;
+  const tid=curTab.tournament_id;
+  if(!tid){w.innerHTML='<span class="tiny">トーナメントを選ぶと料金ボタンが表示されます。</span>';return;}
+  let fees=[];
+  try{const r=await db.from("tournament_fee_items").select("*").eq("tournament_id",tid).order("sort_order",{ascending:true});fees=r.data||[];}
+  catch(e){console.error(e);}
+  tabTnFeeCache={};fees.forEach(f=>tabTnFeeCache[f.id]=f);
+  if(!fees.length){w.innerHTML='<span class="tiny">このトーナメントには料金行がありません。</span>';return;}
+  w.innerHTML=fees.map(f=>{
+    const cash='<button class="mbtn" onclick="addTnFee(\''+f.id+'\')">'+esc(f.name)+'<b>¥'+yen(f.price)+'</b></button>';
+    if(!f.is_ticket_payable)return cash;
+    return '<div style="display:flex;flex-direction:column;gap:.3rem">'+cash+
+      '<button class="mbtn" style="border-color:var(--gold);color:var(--gold)" onclick="addTnFeeTicket(\''+f.id+'\')">🎟 チケットで追加</button></div>';
+  }).join("");
+}
+async function addTnFee(feeId){
+  if(!requireStaff())return;
+  const f=tabTnFeeCache[feeId];if(!f)return;
+  try{
+    await db.from("tab_orders").insert({tab_id:curTab.id,name:f.name,price:f.price,qty:1,staff_name:currentStaff,pool_value:(f.is_pool?f.price:0),charge:f.price});
+    await loadOrders();
+  }catch(e){console.error(e);setMsg(document.getElementById("tabMsg"),"追加に失敗しました","err");}
+}
+window.addTnFee=addTnFee;
+/* 料金行をチケットで払う（必要枚数を自動計算・不足時は(A)現金/(B)シングル） */
+function tnNeedQty(price,value,round){
+  if(value<=0)return 0;
+  const q=price/value;
+  if(round==="floor")return Math.floor(q);
+  if(round==="exact")return Number.isInteger(q)?q:Math.ceil(q);
+  return Math.ceil(q);
+}
+async function tnTicketEntry(o){
+  // o: {spendQty,label,rowName,price,poolVal,isSingle,successMsg}
+  const m=document.getElementById("tabMsg");setMsg(m,"処理中…","");
+  try{
+    if(o.spendQty>0){
+      const {data:sp,error:se}=await db.rpc("spend_tickets",{p_user:curTab.user_id,p_qty:o.spendQty,p_reason:o.label,p_staff:currentStaff,p_tab_id:curTab.id});
+      if(se)throw se;
+      const res=(sp&&sp[0])||null;
+      if(!res||!res.ok){setMsg(m,(res&&res.message==="残高不足")?"チケットが不足しています":"使用できませんでした","err");return;}
+    }
+    await db.from("tab_orders").insert({tab_id:curTab.id,name:o.rowName,price:o.price||0,qty:1,staff_name:currentStaff,pool_value:o.poolVal||0,charge:o.price||0,is_single:!!o.isSingle});
+    setMsg(m,o.successMsg,"ok");
+    await loadOrders();
+  }catch(e){console.error(e);setMsg(m,"追加に失敗しました","err");}
+}
+async function addTnFeeTicket(feeId){
+  if(!requireStaff())return;
+  const f=tabTnFeeCache[feeId];if(!f)return;
+  const tn=(tabTournaments||[]).find(t=>String(t.id)===String(curTab.tournament_id));
+  const round=(tn&&tn.round)||"ceil";
+  const single=!!(tn&&tn.single_enabled);
+  const value=tabTkValue||5000;
+  const need=tnNeedQty(f.price,value,round);
+  if(need<=0){setMsg(document.getElementById("tabMsg"),"チケット枚数を計算できません（1枚の価値を確認）","err");return;}
+  const have=await getTicketBalance(curTab.user_id);
+  const poolFull=f.is_pool?f.price:0;
+  if(have>=need){
+    if(!confirm("🎟 "+yen(need)+"枚 で「"+f.name+"」を追加します。よろしいですか？"))return;
+    return tnTicketEntry({spendQty:need,label:"チケットイン："+f.name,rowName:"🎟 チケットエントリー："+f.name+"（"+need+"枚）",price:0,poolVal:poolFull,isSingle:false,
+      successMsg:"🎟 チケットで追加しました ✓（残り "+yen(have-need)+"枚）"});
+  }
+  // 不足 → (A)現金 / (B)シングル
+  if(have<=0){setMsg(document.getElementById("tabMsg"),"このお客様はチケットを持っていません","err");return;}
+  const cash=Math.max(0,f.price-have*value);
+  const doCash=confirm("チケット不足：必要"+yen(need)+"枚／手持ち"+yen(have)+"枚\n\n「OK」＝ 手持ち"+yen(have)+"枚 ＋ 現金¥"+yen(cash)+" で追加\n「キャンセル」＝ "+(single?"シングルを検討":"中止"));
+  if(doCash){
+    return tnTicketEntry({spendQty:have,label:"チケットイン："+f.name+"（現金併用）",rowName:"🎟 チケットエントリー："+f.name+"（"+have+"枚＋現金¥"+yen(cash)+"）",price:cash,poolVal:poolFull,isSingle:false,
+      successMsg:"🎟 追加しました ✓ 不足分¥"+yen(cash)+"は精算で請求されます。"});
+  }
+  if(single){
+    if(confirm("🎟 手持ち"+yen(have)+"枚でシングル参加にしますか？（初期チップ少なめ）")){
+      return tnTicketEntry({spendQty:have,label:"チケットイン："+f.name+"（シングル）",rowName:"🎟 チケットエントリー："+f.name+"（シングル・"+have+"枚）",price:0,poolVal:(f.is_pool?have*value:0),isSingle:true,
+        successMsg:"🎟 シングルで追加しました ✓"});
+    }
+  }
+  setMsg(document.getElementById("tabMsg"),"中止しました","");
+}
+window.addTnFeeTicket=addTnFeeTicket;
 async function loadOrders(){
   const {data}=await db.from("tab_orders").select("*").eq("tab_id",curTab.id).order("created_at",{ascending:true});
   curOrders=data||[];
@@ -1562,6 +1685,14 @@ async function openCharge(){
   try{const r=await db.from("prize_templates").select("*").order("sort_order",{ascending:true});prizeTmpl=r.data||[];}catch(e){console.error(e);prizeTmpl=[];}
   const sel=document.getElementById("chTmpl");
   sel.innerHTML=prizeTmpl.length?prizeTmpl.map((t,i)=>'<option value="'+i+'">'+esc(t.name)+'</option>').join(""):'<option value="">テンプレ未登録</option>';
+  // 伝票で選択中のトーナメントに紐づく賞金テンプレを自動選択（連動）
+  if(curTab.tournament_id){
+    const tn=(tabTournaments||[]).find(t=>String(t.id)===String(curTab.tournament_id));
+    if(tn&&tn.prize_template_id){
+      const idx=prizeTmpl.findIndex(p=>String(p.id)===String(tn.prize_template_id));
+      if(idx>=0)sel.value=idx;
+    }
+  }
   let entryNames=new Set();
   try{const r=await db.from("menu_items").select("name,is_entry");(r.data||[]).forEach(m=>{if(m.is_entry)entryNames.add(m.name);});}catch(e){console.error(e);}
   const start=new Date();start.setHours(0,0,0,0);

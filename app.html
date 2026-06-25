@@ -699,6 +699,20 @@ const LS_STAFF = "bq_staff_name";
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const yen = n => Number(n||0).toLocaleString();
 const setMsg=(el,t,c)=>{el.textContent=t||"";el.className="msg"+(c?" "+c:"");};
+
+/* history.type 列の有無に依存しない安全なINSERT（無ければ type を外して再実行） */
+let historyHasType = true;
+async function histInsert(row){
+  if(historyHasType){
+    const r = await db.from("history").insert(row);
+    if(!r.error) return r;
+    const msg = ((r.error.message||"")+" "+(r.error.details||"")+" "+(r.error.hint||"")+" "+(r.error.code||"")).toLowerCase();
+    if(msg.includes("type") || msg.includes("pgrst204")){ historyHasType = false; /* 下で type 無しで再試行 */ }
+    else { return r; }
+  }
+  const { type, ...rest } = row;
+  return await db.from("history").insert(rest);
+}
 function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");if(id!=="screen-staff")stopScanner();}
 
 /* ===== ログイン ===== */
@@ -1046,12 +1060,19 @@ async function openSettle(){
   setValidV=valid;
   document.getElementById("setValid").textContent=yen(valid);
   
-  // 当日付与マイル（リング分）を取得して除外
+  // 当日付与マイル（リング分）を取得して除外（type列がある環境のみ）
   let todayAdded=0;
-  try{
-    const {data}=await db.from("history").select("amount").eq("user_id",curTab.user_id).eq("type","ring").gte("created_at",new Date().toISOString().split('T')[0]);
-    if(data){todayAdded=data.reduce((s,h)=>s+(h.amount||0),0);}
-  }catch(e){console.error("当日マイル取得エラー",e);}
+  if(historyHasType){
+    try{
+      const {data,error}=await db.from("history").select("amount").eq("user_id",curTab.user_id).eq("type","ring").gte("created_at",new Date().toISOString().split('T')[0]);
+      if(error){
+        const msg=((error.message||"")+" "+(error.code||"")).toLowerCase();
+        if(msg.includes("type")||msg.includes("pgrst204")) historyHasType=false;
+      }else if(data){
+        todayAdded=data.reduce((s,h)=>s+(h.amount||0),0);
+      }
+    }catch(e){console.error("当日マイル取得エラー",e);}
+  }
   
   const availableMiles = Math.max(0, valid - todayAdded);
   
@@ -1121,13 +1142,13 @@ async function confirmSettle(){
     
     // マイル付与履歴の記録
     if(useM>0){
-      const {error:he}=await db.from("history").insert({user_id:curTab.user_id,action:"決済",amount:useM,staff_name:currentStaff,type:"normal"});
+      const {error:he}=await histInsert({user_id:curTab.user_id,action:"決済",amount:useM,staff_name:currentStaff,type:"normal"});
       if(he)throw he;
     }
     
-    // リング分のマイルを付与（当日付与・type:ring で翌日から使用可）
+    // リング分のマイルを付与（type:ring 対応環境では当日分として翌日から使用可）
     if(totalRingMiles > 0){
-      const {error:ringError}=await db.from("history").insert({user_id:curTab.user_id,action:"チャージ",amount:totalRingMiles,staff_name:currentStaff,type:"ring"});
+      const {error:ringError}=await histInsert({user_id:curTab.user_id,action:"チャージ",amount:totalRingMiles,staff_name:currentStaff,type:"ring"});
       if(ringError)throw ringError;
     }
     
@@ -1729,14 +1750,15 @@ document.getElementById("ringFinalBB").addEventListener("input",()=>{
   
   document.getElementById("ringDisplayFinal").textContent = finalBB;
   
-  // 割引計算：100BBごとに1000円
+  // 割引計算：100BBごとに1000円（100BB未満は切り捨て）
   const discount = Math.floor(finalBB / 100) * 1000;
   const fee = Math.max(0, totalEntry - discount);
-  const miles = (discount > totalEntry) ? ((discount - totalEntry) / 1000) : 0;
+  // 余剰（買い足し額を超えた割引分）を 100BB=1000マイル として付与
+  const miles = (discount > totalEntry) ? (discount - totalEntry) : 0;
   
   document.getElementById("ringDiscount").textContent = discount;
   document.getElementById("ringFee").textContent = fee;
-  document.getElementById("ringMilesGrant").textContent = Math.floor(miles);
+  document.getElementById("ringMilesGrant").textContent = miles;
 });
 
 document.getElementById("ringSettleConfirm").addEventListener("click",async ()=>{
@@ -1749,7 +1771,7 @@ document.getElementById("ringSettleConfirm").addEventListener("click",async ()=>
   const totalEntry = buyin.reduce((s,b)=>s+b.fee,0);
   const discount = Math.floor(finalBB / 100) * 1000;
   const fee = Math.max(0, totalEntry - discount);
-  const miles = (discount > totalEntry) ? Math.floor((discount - totalEntry) / 1000) : 0;
+  const miles = (discount > totalEntry) ? (discount - totalEntry) : 0;
   
   // プレイヤー情報を保存（後で使うため）
   const playerName = selectedRingPlayer.user_name;

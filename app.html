@@ -1224,7 +1224,7 @@ async function doGrant(m){
   const boost=document.getElementById("chRankBoost");
   const mult=(boost&&boost.checked)?2:1;
   const bqrp=m*mult;
-  try{const r=await db.from("history").insert({user_id:curTab.user_id,action:"チャージ",amount:m,staff_name:currentStaff,bqrp:bqrp});if(r.error)throw r.error;setMsg(chMsgEl,yen(m)+"pt を付与しました ✓"+(mult>1?"（BQRP "+yen(bqrp)+"pt・2倍）":""),"ok");setTimeout(()=>showActiveView("tab"),1200);}
+  try{const r=await db.from("history").insert({user_id:curTab.user_id,user_name:curTab.user_name,action:"チャージ",amount:m,staff_name:currentStaff,bqrp:bqrp});if(r.error)throw r.error;setMsg(chMsgEl,yen(m)+"pt を付与しました ✓"+(mult>1?"（BQRP "+yen(bqrp)+"pt・2倍）":""),"ok");setTimeout(()=>showActiveView("tab"),1200);}
   catch(e){console.error(e);setMsg(chMsgEl,"付与に失敗しました","err");}
 }
 
@@ -1332,13 +1332,13 @@ async function confirmSettle(){
     
     // マイル付与履歴の記録
     if(useM>0){
-      const {error:he}=await db.from("history").insert({user_id:curTab.user_id,action:"決済",amount:useM,staff_name:currentStaff,type:"normal"});
+      const {error:he}=await db.from("history").insert({user_id:curTab.user_id,user_name:curTab.user_name,action:"決済",amount:useM,staff_name:currentStaff,type:"normal"});
       if(he)throw he;
     }
     
     // リング分のマイルを付与（実マイルは等倍／BQRPは常に2倍で裏に保存）
     if(totalRingMiles > 0){
-      const {error:ringError}=await db.from("history").insert({user_id:curTab.user_id,action:"マイル付与",amount:totalRingMiles,staff_name:currentStaff,type:"ring",bqrp:totalRingMiles*2});
+      const {error:ringError}=await db.from("history").insert({user_id:curTab.user_id,user_name:curTab.user_name,action:"マイル付与",amount:totalRingMiles,staff_name:currentStaff,type:"ring",bqrp:totalRingMiles*2});
       if(ringError)throw ringError;
     }
     

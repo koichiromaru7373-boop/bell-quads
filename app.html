@@ -199,6 +199,31 @@ input::placeholder{color:#7fa28d}
 .prz-item .pn small{display:block;font-size:.72rem;color:var(--dim);font-weight:400}
 .prz-item .mini{padding:.4rem .7rem;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--cream);font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ===== MONTHLY LEADERBOARD / VIP（追加） ===== */
+.plat-badge{margin-top:.9rem;border-radius:14px;padding:.85rem 1rem;background:linear-gradient(135deg,#3a2f0a,#1a1405);border:1px solid var(--gold);box-shadow:0 0 0 1px rgba(244,208,63,.25),0 8px 22px rgba(0,0,0,.4);display:flex;align-items:center;gap:.7rem}
+.plat-badge .pb-ico{font-size:1.5rem;line-height:1}
+.plat-badge .pb-tx{flex:1}
+.plat-badge .pb-tt{font-weight:800;color:var(--gold);font-size:.95rem;letter-spacing:.02em}
+.plat-badge .pb-sb{font-size:.74rem;color:var(--cream);opacity:.85}
+.lb-head{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.2rem}
+.lb-head .eyebrow{flex:1}
+.lb-month{width:auto;min-width:140px;margin-top:0;padding:.5rem .7rem;font-size:.85rem}
+.lb-list{margin-top:.8rem;display:flex;flex-direction:column;gap:.5rem}
+.lb-row{display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;border-radius:11px;border:1px solid var(--line);background:rgba(0,0,0,.18)}
+.lb-row .lb-rk{width:30px;text-align:center;font-weight:800;color:var(--dim);font-size:.95rem;flex:none}
+.lb-row .lb-nm{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-row .lb-pt{font-weight:800;color:var(--gold);font-size:.9rem;flex:none}
+.lb-row .lb-pt small{font-weight:600;color:var(--dim);font-size:.7rem}
+.lb-row.r1{background:linear-gradient(135deg,rgba(244,208,63,.22),rgba(244,208,63,.05));border-color:var(--gold)}
+.lb-row.r2{background:linear-gradient(135deg,rgba(210,210,220,.16),rgba(210,210,220,.03));border-color:#cfd3dc}
+.lb-row.r3{background:linear-gradient(135deg,rgba(205,150,90,.18),rgba(205,150,90,.03));border-color:#cd965a}
+.lb-row.r1 .lb-rk,.lb-row.r2 .lb-rk,.lb-row.r3 .lb-rk{font-size:1.25rem}
+.lb-row.me{outline:2px solid var(--gold);outline-offset:1px}
+.lb-myrank{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:.7rem;padding:.7rem .9rem;border-radius:12px;border:1px dashed var(--gold);background:rgba(244,208,63,.06)}
+.lb-myrank .v{font-weight:800;color:var(--gold)}
+.vip-user-row{display:flex;align-items:center;gap:.6rem;padding:.55rem .7rem;border-radius:10px;border:1px solid var(--line);margin-top:.5rem}
+.vip-user-row .vu-nm{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vip-user-row .vu-st{font-size:.74rem;color:var(--gold)}
 </style>
 </head>
 <body>
@@ -253,6 +278,28 @@ input::placeholder{color:#7fa28d}
         <div class="nm"><small>MEMBER</small><span id="mName">—</span></div>
         <div class="bal"><div class="lab">有効マイル残高</div><div class="val"><span id="mMiles">0</span><small> pt</small></div></div>
         <div class="expire" id="mExpire" style="display:none"></div>
+      </div>
+
+      <!-- 👑 プラチナパス（発動中のみ表示） -->
+      <div class="plat-badge" id="mPlatinum" style="display:none">
+        <div class="pb-ico">👑</div>
+        <div class="pb-tx">
+          <div class="pb-tt">プラチナパス発動中！</div>
+          <div class="pb-sb" id="mPlatinumSub">100%マイル決済可能</div>
+        </div>
+      </div>
+
+      <!-- 月間ランキング -->
+      <div class="panel pad" id="mLbPanel" style="margin-top:1.1rem">
+        <div class="lb-head">
+          <div class="eyebrow">🏆 Monthly Leaderboard</div>
+          <select id="mLbMonth" class="lb-month"></select>
+        </div>
+        <div class="lb-myrank" id="mMyRank" style="display:none">
+          <span>あなたの順位</span>
+          <span><span class="v" id="mMyRankPos">—</span> ／ 累計 <span class="v" id="mMyRankPt">0</span> BQRP</span>
+        </div>
+        <div class="lb-list" id="mLbList"><div class="empty">読み込み中…</div></div>
       </div>
 
       <div id="tabCard" class="panel pad" style="display:none;margin-top:1.1rem">
@@ -367,6 +414,7 @@ input::placeholder{color:#7fa28d}
             <label class="fld" for="chTmpl">賞金テンプレ</label>
             <select id="chTmpl"></select>
             <div id="chBreak" style="margin-top:.8rem"></div>
+            <label style="display:flex;align-items:center;gap:.5rem;margin-top:.9rem;font-size:.9rem;color:var(--gold);border:1px solid var(--gold);border-radius:11px;padding:.65rem .8rem;background:rgba(244,208,63,.06)"><input type="checkbox" id="chRankBoost" style="width:auto;margin:0"> ⭐ ランキングポイント2倍（特定日・キャンペーン）</label>
             <div class="divider"></div>
             <div id="chManualWrap">
               <label class="fld" for="chManual">任意のマイルを付与（手動）</label>
@@ -481,6 +529,7 @@ input::placeholder{color:#7fa28d}
       <button class="tab" id="aTabPhoto">写真</button>
       <button class="tab" id="aTabPrize">賞金</button>
       <button class="tab" id="aTabRing">リング設定</button>
+      <button class="tab" id="aTabVip">プラチナ</button>
     </div>
 
     <!-- イベント管理 -->
@@ -510,12 +559,7 @@ input::placeholder{color:#7fa28d}
           <label class="fld">イベント写真（最大5枚）</label>
           <input id="ecPhotosInput" type="file" accept="image/*" multiple style="cursor:pointer" />
           <div id="ecPhotosPreview" style="margin-top:.8rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:.6rem"></div>
-
-          <!-- 背景画像（任意・1枚） -->
-          <label class="fld">背景画像（任意・詳細モーダル上部に表示）</label>
-          <input id="ecBgInput" type="file" accept="image/*" style="cursor:pointer" />
-          <div id="ecBgPreview" style="margin-top:.8rem"></div>
-
+          
           <!-- カレンダーの色 -->
           <label class="fld">カレンダーの色</label>
           <div class="color-row" id="ecColors"></div>
@@ -682,6 +726,32 @@ input::placeholder{color:#7fa28d}
         </div>
       </div>
     </div>
+
+    <!-- プラチナパス手動付与 -->
+    <div class="tpanel" id="apanel-vip">
+      <div class="pad">
+        <div class="eyebrow">👑 プラチナパス手動付与</div>
+        <p class="tiny" style="margin:.4rem 0 .8rem">テスト・プライズ配布用。指定した有効期限まで、そのユーザーはマイル決済上限が100%になります（プレイ代に適用）。</p>
+        <div class="panel pad">
+          <label class="fld" for="vipSearch">ユーザー検索（お名前）</label>
+          <div style="display:flex;gap:.6rem;align-items:flex-start">
+            <input id="vipSearch" type="text" placeholder="お名前で検索" style="flex:1" />
+            <button class="btn btn-ghost" style="width:auto;padding:.78rem 1rem" id="vipSearchBtn">検索</button>
+          </div>
+          <div id="vipResults" style="margin-top:.6rem"></div>
+        </div>
+        <div class="panel pad" id="vipGrantBox" style="margin-top:.8rem;display:none">
+          <div class="eyebrow" id="vipTargetName">—</div>
+          <label class="fld" for="vipUntil">有効期限（この日まで100%）</label>
+          <input id="vipUntil" type="date" />
+          <div class="btn-row">
+            <button class="btn btn-red" id="vipClear">解除</button>
+            <button class="btn btn-gold" id="vipSave">付与する</button>
+          </div>
+          <div class="msg" id="vipMsg"></div>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -699,20 +769,6 @@ const LS_STAFF = "bq_staff_name";
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const yen = n => Number(n||0).toLocaleString();
 const setMsg=(el,t,c)=>{el.textContent=t||"";el.className="msg"+(c?" "+c:"");};
-
-/* history.type 列の有無に依存しない安全なINSERT（無ければ type を外して再実行） */
-let historyHasType = true;
-async function histInsert(row){
-  if(historyHasType){
-    const r = await db.from("history").insert(row);
-    if(!r.error) return r;
-    const msg = ((r.error.message||"")+" "+(r.error.details||"")+" "+(r.error.hint||"")+" "+(r.error.code||"")).toLowerCase();
-    if(msg.includes("type") || msg.includes("pgrst204")){ historyHasType = false; /* 下で type 無しで再試行 */ }
-    else { return r; }
-  }
-  const { type, ...rest } = row;
-  return await db.from("history").insert(rest);
-}
 function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");if(id!=="screen-staff")stopScanner();}
 
 /* ===== ログイン ===== */
@@ -741,6 +797,7 @@ async function enterMember(u){
   const box=document.getElementById("qrBox");box.innerHTML="";
   qrInst=new QRCode(box,{text:String(u.id),width:170,height:170,colorDark:"#0f3320",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.M});
   await loadMile(u.id); await loadHist(u.id); await loadActiveTab(u.id);
+  await loadVipBadge(u.id); initMemberLeaderboard(u.id);
 }
 async function loadActiveTab(id){
   const card=document.getElementById("tabCard");
@@ -777,16 +834,136 @@ async function loadHist(id){
     const {data,error}=await db.from("history").select("*").eq("user_id",id).order("created_at",{ascending:false}).limit(8);
     if(error)throw error;
     if(!data||!data.length){w.innerHTML='<div class="empty">まだ履歴がありません</div>';return;}
-    w.innerHTML=data.map(h=>{const isIn=(h.action==="チャージ"||h.action==="マイル付与");const d=new Date(h.created_at);
+    w.innerHTML=data.map(h=>{const isIn=h.action==="チャージ";const d=new Date(h.created_at);
       const dt=(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
       return '<div class="hrow"><div style="display:flex;gap:.6rem;align-items:center"><span class="tag '+(isIn?"in":"out")+'">'+esc(h.action)+'</span><span class="tiny">'+dt+(h.staff_name?" ・"+esc(h.staff_name):"")+'</span></div><span class="amt '+(isIn?"in":"out")+'">'+(isIn?"+":"-")+yen(h.amount)+'</span></div>';
     }).join("");
   }catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}
 }
-document.getElementById("btnRefresh").addEventListener("click",async()=>{const id=localStorage.getItem(LS_USER);if(id){await loadMile(id);await loadHist(id);await loadActiveTab(id);}});
+document.getElementById("btnRefresh").addEventListener("click",async()=>{const id=localStorage.getItem(LS_USER);if(id){await loadMile(id);await loadHist(id);await loadActiveTab(id);await loadVipBadge(id);const sel=document.getElementById("mLbMonth");if(sel&&sel.value)loadMemberLeaderboard(id,sel.value);}});
 /* マイページ表示中は会計を自動更新（プレイ中の金額をライブ反映） */
 setInterval(()=>{const id=localStorage.getItem(LS_USER);if(id&&document.getElementById("screen-member").classList.contains("active"))loadActiveTab(id);},15000);
 document.getElementById("btnLogout").addEventListener("click",()=>{localStorage.removeItem(LS_USER);document.getElementById("loginName").value="";showScreen("screen-login");});
+
+/* ===== MONTHLY LEADERBOARD / VIP（追加） ===== */
+const LB_START="2026-06"; // ランキング表示の開始月（プレオープン）
+function lbYmKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+function lbYmLabel(key){const[y,m]=key.split("-");return y+"年"+parseInt(m,10)+"月";}
+function lbMonthOptions(){
+  const opts=[];const now=new Date();const cur=lbYmKey(now);
+  let[sy,sm]=LB_START.split("-").map(Number);
+  let cy=now.getFullYear(),cm=now.getMonth()+1;
+  // 開始月から現在月まで（新しい順）
+  const list=[];let y=sy,m=sm;
+  while(y<cy||(y===cy&&m<=cm)){list.push(y+"-"+String(m).padStart(2,"0"));m++;if(m>12){m=1;y++;}}
+  list.reverse();
+  return {list,current:cur};
+}
+function lbRowHtml(r,idx,myId){
+  const rk=r.rank||(idx+1);
+  const cls=rk===1?"r1":rk===2?"r2":rk===3?"r3":"";
+  const crown=rk===1?"👑":rk===2?"🥈":rk===3?"🥉":rk;
+  const me=(myId&&String(r.user_id)===String(myId))?" me":"";
+  return '<div class="lb-row '+cls+me+'"><span class="lb-rk">'+crown+'</span><span class="lb-nm">'+esc(r.name||"—")+'</span><span class="lb-pt">'+yen(r.bqrp)+' <small>BQRP</small></span></div>';
+}
+async function loadVipBadge(userId){
+  const badge=document.getElementById("mPlatinum");if(!badge)return;
+  try{
+    const {data}=await db.rpc("vip_status",{p_user:userId});
+    const v=(data&&data[0])||null;
+    if(v&&v.is_platinum){
+      const dl=(typeof v.days_left==="number")?v.days_left:null;
+      const left=(dl===null)?"":(dl<=0?"本日まで":"残り"+dl+"日");
+      const src=v.source==="manual"?"特別付与":(v.source==="rank1"?"前月1位":(v.source==="rank2"?"前月2位":""));
+      document.getElementById("mPlatinumSub").textContent="100%マイル決済可能"+(left?"　"+left:"")+(src?"（"+src+"）":"");
+      badge.style.display="flex";
+    }else{badge.style.display="none";}
+  }catch(e){console.error("vip badge",e);badge.style.display="none";}
+}
+let memberLbUserId=null;
+function initMemberLeaderboard(userId){
+  memberLbUserId=userId;
+  const sel=document.getElementById("mLbMonth");if(!sel)return;
+  const {list,current}=lbMonthOptions();
+  sel.innerHTML=list.map(k=>'<option value="'+k+'"'+(k===current?" selected":"")+'>'+lbYmLabel(k)+'</option>').join("");
+  sel.onchange=()=>loadMemberLeaderboard(userId,sel.value);
+  loadMemberLeaderboard(userId,current);
+}
+async function loadMemberLeaderboard(userId,ymKey){
+  const w=document.getElementById("mLbList");if(!w)return;
+  w.innerHTML='<div class="empty">読み込み中…</div>';
+  const myWrap=document.getElementById("mMyRank");
+  try{
+    const {data,error}=await db.rpc("bqrp_ranking",{p_month:ymKey+"-01"});
+    if(error)throw error;
+    const rows=data||[];
+    const top=rows.slice(0,10);
+    w.innerHTML=top.length?top.map((r,i)=>lbRowHtml(r,i,userId)).join(""):'<div class="empty">この月の記録はまだありません</div>';
+    const mine=rows.find(r=>String(r.user_id)===String(userId));
+    if(mine){
+      document.getElementById("mMyRankPos").textContent=mine.rank+"位";
+      document.getElementById("mMyRankPt").textContent=yen(mine.bqrp);
+      myWrap.style.display="flex";
+    }else{myWrap.style.display="none";}
+  }catch(e){console.error("member leaderboard",e);w.innerHTML='<div class="empty">読み込みに失敗しました</div>';myWrap.style.display="none";}
+}
+
+/* ===== 管理：プラチナパス手動付与 ===== */
+let vipSelected=null;
+function vipInit(){
+  const box=document.getElementById("vipGrantBox");if(box)box.style.display="none";
+  vipSelected=null;
+  const res=document.getElementById("vipResults");if(res)res.innerHTML="";
+  const s=document.getElementById("vipSearch");if(s)s.value="";
+}
+document.getElementById("vipSearchBtn").addEventListener("click",vipSearch);
+document.getElementById("vipSearch").addEventListener("keydown",e=>{if(e.key==="Enter")vipSearch();});
+async function vipSearch(){
+  const q=document.getElementById("vipSearch").value.trim();
+  const res=document.getElementById("vipResults");
+  if(!q){res.innerHTML='<div class="tiny">お名前を入力してください。</div>';return;}
+  res.innerHTML='<div class="tiny">検索中…</div>';
+  try{
+    const {data,error}=await db.from("users").select("id,name,platinum_until").ilike("name","%"+q+"%").order("name").limit(20);
+    if(error)throw error;
+    if(!data||!data.length){res.innerHTML='<div class="empty">該当ユーザーがいません</div>';return;}
+    res.innerHTML=data.map(u=>{
+      const pu=u.platinum_until?('<span class="vu-st">〜'+esc(u.platinum_until)+'</span>'):'<span class="tiny">未設定</span>';
+      return '<div class="vip-user-row"><span class="vu-nm">'+esc(u.name)+'</span>'+pu+'<button class="btn btn-ghost" style="width:auto;padding:.4rem .7rem;font-size:.78rem" onclick="vipPick(\''+u.id+'\',\''+esc(u.name).replace(/'/g,"\\'")+'\',\''+(u.platinum_until||"")+'\')">選択</button></div>';
+    }).join("");
+  }catch(e){console.error(e);res.innerHTML='<div class="empty">検索に失敗しました</div>';}
+}
+function vipPick(id,name,until){
+  vipSelected={id,name};
+  document.getElementById("vipTargetName").textContent=name+" 様";
+  document.getElementById("vipUntil").value=until||"";
+  document.getElementById("vipGrantBox").style.display="block";
+  setMsg(document.getElementById("vipMsg"),"","");
+  document.getElementById("vipGrantBox").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+window.vipPick=vipPick;
+document.getElementById("vipSave").addEventListener("click",async()=>{
+  if(!vipSelected){return;}
+  const until=document.getElementById("vipUntil").value;
+  if(!until){setMsg(document.getElementById("vipMsg"),"有効期限を選んでください","err");return;}
+  try{
+    const {error}=await db.from("users").update({platinum_until:until}).eq("id",vipSelected.id);
+    if(error)throw error;
+    setMsg(document.getElementById("vipMsg"),"👑 "+vipSelected.name+" 様にプラチナパスを付与しました（〜"+until+"）","ok");
+    vipSearch();
+  }catch(e){console.error(e);setMsg(document.getElementById("vipMsg"),"付与に失敗しました","err");}
+});
+document.getElementById("vipClear").addEventListener("click",async()=>{
+  if(!vipSelected){return;}
+  if(!confirm(vipSelected.name+" 様のプラチナパスを解除しますか？"))return;
+  try{
+    const {error}=await db.from("users").update({platinum_until:null}).eq("id",vipSelected.id);
+    if(error)throw error;
+    setMsg(document.getElementById("vipMsg"),"解除しました","ok");
+    document.getElementById("vipUntil").value="";
+    vipSearch();
+  }catch(e){console.error(e);setMsg(document.getElementById("vipMsg"),"解除に失敗しました","err");}
+});
 
 /* ===== 新規登録 ===== */
 const regMsg=document.getElementById("regMsg");
@@ -985,6 +1162,7 @@ async function openCharge(){
   if(!requireStaff())return;
   document.getElementById("chWho").textContent=curTab.user_name;
   document.getElementById("chManual").value="";setMsg(chMsgEl,"","");
+  {const cb=document.getElementById("chRankBoost");if(cb)cb.checked=false;}
   document.getElementById("chManualWrap").style.display=currentStaffGrant?"block":"none";
   document.getElementById("chNoPerm").style.display=currentStaffGrant?"none":"block";
   try{const r=await db.from("prize_templates").select("*").order("sort_order",{ascending:true});prizeTmpl=r.data||[];}catch(e){console.error(e);prizeTmpl=[];}
@@ -1042,12 +1220,16 @@ document.getElementById("btnChManual").addEventListener("click",async()=>{
   await doGrant(m);
 });
 async function doGrant(m){
-  try{const r=await db.from("history").insert({user_id:curTab.user_id,action:"チャージ",amount:m,staff_name:currentStaff});if(r.error)throw r.error;setMsg(chMsgEl,yen(m)+"pt を付与しました ✓","ok");setTimeout(()=>showActiveView("tab"),1200);}
+  // 実マイル(amount)は常に等倍。ランキング用BQRPのみ倍率を適用して裏に保存。
+  const boost=document.getElementById("chRankBoost");
+  const mult=(boost&&boost.checked)?2:1;
+  const bqrp=m*mult;
+  try{const r=await db.from("history").insert({user_id:curTab.user_id,action:"チャージ",amount:m,staff_name:currentStaff,bqrp:bqrp});if(r.error)throw r.error;setMsg(chMsgEl,yen(m)+"pt を付与しました ✓"+(mult>1?"（BQRP "+yen(bqrp)+"pt・2倍）":""),"ok");setTimeout(()=>showActiveView("tab"),1200);}
   catch(e){console.error(e);setMsg(chMsgEl,"付与に失敗しました","err");}
 }
 
 /* ===== 精算 ===== */
-let setTotalV=0,setValidV=0,setMaxMilesV=0;
+let setTotalV=0,setValidV=0,setMaxMilesV=0,setVipV=false;
 document.getElementById("btnSettle").addEventListener("click",openSettle);
 async function openSettle(){
   if(!requireStaff())return;
@@ -1060,24 +1242,25 @@ async function openSettle(){
   setValidV=valid;
   document.getElementById("setValid").textContent=yen(valid);
   
-  // 当日付与マイル（リング分）を取得して除外（type列がある環境のみ）
+  // 当日付与マイル（リング分）を取得して除外
   let todayAdded=0;
-  if(historyHasType){
-    try{
-      const {data,error}=await db.from("history").select("amount").eq("user_id",curTab.user_id).eq("type","ring").gte("created_at",new Date().toISOString().split('T')[0]);
-      if(error){
-        const msg=((error.message||"")+" "+(error.code||"")).toLowerCase();
-        if(msg.includes("type")||msg.includes("pgrst204")) historyHasType=false;
-      }else if(data){
-        todayAdded=data.reduce((s,h)=>s+(h.amount||0),0);
-      }
-    }catch(e){console.error("当日マイル取得エラー",e);}
-  }
+  try{
+    const {data}=await db.from("history").select("amount").eq("user_id",curTab.user_id).eq("type","ring").gte("created_at",new Date().toISOString().split('T')[0]);
+    if(data){todayAdded=data.reduce((s,h)=>s+(h.amount||0),0);}
+  }catch(e){console.error("当日マイル取得エラー",e);}
   
   const availableMiles = Math.max(0, valid - todayAdded);
   
-  // マイル上限は総会計の80%、ただし当日分を除外
-  setMaxMilesV=Math.floor(setTotalV*0.8);
+  // VIP（プラチナパス）判定：A=前月ランキング / B=管理者手動 のいずれかで100%
+  setVipV=false; let vipInfo=null;
+  try{
+    const {data:vs}=await db.rpc("vip_status",{p_user:curTab.user_id});
+    vipInfo=(vs&&vs[0])||null;
+    setVipV=!!(vipInfo&&vipInfo.is_platinum);
+  }catch(e){console.error("vip_status取得エラー",e);}
+  
+  // マイル上限：通常は総会計の80%。VIPなら100%。いずれも当日付与分は除外。
+  setMaxMilesV = setVipV ? setTotalV : Math.floor(setTotalV*0.8);
   const useM=Math.min(setMaxMilesV,availableMiles);
   document.getElementById("setMiles").value=useM;
   document.getElementById("setCash").value=Math.max(0,setTotalV-useM);
@@ -1090,7 +1273,11 @@ async function openSettle(){
     console.log("本日付与マイル："+yen(todayAdded)+"pt（翌日から使用可）");
   }
   
-  setMsg(document.getElementById("setMsg"),"","");
+  if(setVipV){
+    setMsg(document.getElementById("setMsg"),"👑 プラチナパス発動中：マイル決済100%まで利用可能です","ok");
+  }else{
+    setMsg(document.getElementById("setMsg"),"","");
+  }
   showActiveView("settle");
 }
 const setMilesEl=document.getElementById("setMiles"),setCashEl=document.getElementById("setCash");
@@ -1116,11 +1303,11 @@ async function confirmSettle(){
   const useM=parseInt(setMilesEl.value,10)||0;
   const cash=parseInt(setCashEl.value,10)||0;
   const total=setTotalV;
-  const maxMiles=Math.floor(total * 0.8); // 総会計の80%
+  const maxMiles = setVipV ? total : Math.floor(total * 0.8); // VIPは100%、通常は80%
   
   // バリデーション
   if(useM > maxMiles){
-    setMsg(document.getElementById("setMsg"),`使用マイルは総会計の80%（${yen(maxMiles)}pt）までです`,"err");
+    setMsg(document.getElementById("setMsg"),`使用マイルは${setVipV?"総会計の100%":"総会計の80%"}（${yen(maxMiles)}pt）までです`,"err");
     return;
   }
   if(useM + cash < 0){
@@ -1136,25 +1323,27 @@ async function confirmSettle(){
   const btn=document.getElementById("btnSetConfirm");btn.disabled=true;
   setMsg(document.getElementById("setMsg"),"処理中…","");
   try{
-    // リング分の付与予定マイルを取得（カート追加時に保存済み）
-    const ringPending = getRingPending();
-    const totalRingMiles = ringPending[curTab.id] || 0;
+    // リング分のマイルを計算
+    let totalRingMiles = 0;
+    const ringItems = (curOrders||[]).filter(o=>o.isRing);
+    ringItems.forEach(item=>{
+      if(item.ringMiles){totalRingMiles += item.ringMiles;}
+    });
     
     // マイル付与履歴の記録
     if(useM>0){
-      const {error:he}=await histInsert({user_id:curTab.user_id,action:"決済",amount:useM,staff_name:currentStaff,type:"normal"});
+      const {error:he}=await db.from("history").insert({user_id:curTab.user_id,action:"決済",amount:useM,staff_name:currentStaff,type:"normal"});
       if(he)throw he;
     }
     
-    // リング分のマイルを付与（type:ring 対応環境では当日分として翌日から使用可）
+    // リング分のマイルを付与（実マイルは等倍／BQRPは常に2倍で裏に保存）
     if(totalRingMiles > 0){
-      const {error:ringError}=await histInsert({user_id:curTab.user_id,action:"チャージ",amount:totalRingMiles,staff_name:currentStaff,type:"ring"});
+      const {error:ringError}=await db.from("history").insert({user_id:curTab.user_id,action:"マイル付与",amount:totalRingMiles,staff_name:currentStaff,type:"ring",bqrp:totalRingMiles*2});
       if(ringError)throw ringError;
     }
     
     const {error:te}=await db.from("tabs").update({status:"settled",settled_by:currentStaff,settled_at:new Date().toISOString(),total:setTotalV,miles_used:useM,cash_paid:cash}).eq("id",curTab.id);
     if(te)throw te;
-    clearRingPending(curTab.id);
     btn.disabled=false;
     setMsg(document.getElementById("setMsg"),"精算完了：マイル "+yen(useM)+"pt ／ 現金 ¥"+yen(cash)+(totalRingMiles>0?" ／ リング付与 "+yen(totalRingMiles)+"pt":""),"ok");
     setTimeout(()=>{showActiveView("list");loadActive();},1400);
@@ -1257,7 +1446,7 @@ document.getElementById("btnAdminEnter").addEventListener("click",adminEnter);
 function adminEnter(){const pin=document.getElementById("adminPin").value.trim();if(pin!==ADMIN_PIN){setMsg(adminPinMsg,"PINが違います","err");return;}document.getElementById("adminPin").value="";setMsg(adminPinMsg,"","");showScreen("screen-admin");adminTab("event");}
 document.getElementById("btnAdminExit").addEventListener("click",()=>showScreen("screen-login"));
 function adminTab(t){
-  [["aTabEvent","apanel-event","event"],["aTabEventTmpl","apanel-eventtmpl","eventtmpl"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"],["aTabRing","apanel-ring","ring"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
+  [["aTabEvent","apanel-event","event"],["aTabEventTmpl","apanel-eventtmpl","eventtmpl"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"],["aTabRing","apanel-ring","ring"],["aTabVip","apanel-vip","vip"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
   if(t==="event")ecInit();else if(t==="eventtmpl"){loadEcTmplMgr();}else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();else if(t==="prize"){przClear();loadPrize();}else if(t==="ring"){loadRingSettings();}
 }
 document.getElementById("aTabEvent").addEventListener("click",()=>adminTab("event"));
@@ -1268,6 +1457,7 @@ document.getElementById("aTabCms").addEventListener("click",()=>adminTab("cms"))
 document.getElementById("aTabPhoto").addEventListener("click",()=>adminTab("photo"));
 document.getElementById("aTabPrize").addEventListener("click",()=>adminTab("prize"));
 document.getElementById("aTabRing").addEventListener("click",()=>adminTab("ring"));
+document.getElementById("aTabVip").addEventListener("click",()=>{adminTab("vip");vipInit();});
 
 /* ---- イベント管理 ---- */
 const EVENT_COLORS=[{v:"",css:"#f4d03f"},{v:"#e74c3c",css:"#e74c3c"},{v:"#e67e22",css:"#e67e22"},{v:"#2ecc71",css:"#2ecc71"},{v:"#3498db",css:"#3498db"},{v:"#9b59b6",css:"#9b59b6"},{v:"#ff5fa2",css:"#ff5fa2"}];
@@ -1320,19 +1510,12 @@ function renderEcTmpl(){const el=document.getElementById("ecTemplates");if(!ecTm
 function ecApplyTmpl(i){const t=ecTmpl[i];if(!t)return;document.getElementById("ecTitleInput").value=t.name||"";document.getElementById("ecDescInput").value=t.description||"";ecColor=t.color||"";renderEcColors();}window.ecApplyTmpl=ecApplyTmpl;
 function renderEcPickup(){const b=document.getElementById("ecPickup");b.classList.toggle("on",ecPickup);b.textContent=ecPickup?"★ PICK UPに表示中":"表示しない";}
 document.getElementById("ecPickup").addEventListener("click",()=>{ecPickup=!ecPickup;renderEcPickup();});
-function ecAdd(){ecEditingId=null;document.getElementById("ecFormTitle").textContent="イベントを追加";const d=new Date(ecSelected+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value="";document.getElementById("ecDescInput").value="";document.getElementById("ecDetailDescInput").value="";document.getElementById("ecTwitterUrl").value="";document.getElementById("ecInstagramUrl").value="";document.getElementById("ecFacebookUrl").value="";document.getElementById("ecTiktokUrl").value="";document.getElementById("ecYoutubeUrl").value="";document.getElementById("ecPhotosInput").value="";document.getElementById("ecPhotosPreview").innerHTML="";ecColor="";ecPickup=false;ecPhotosFiles=[];ecBgFile=null;document.getElementById("ecBgInput").value="";document.getElementById("ecBgPreview").innerHTML="";renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
+function ecAdd(){ecEditingId=null;document.getElementById("ecFormTitle").textContent="イベントを追加";const d=new Date(ecSelected+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value="";document.getElementById("ecDescInput").value="";document.getElementById("ecDetailDescInput").value="";document.getElementById("ecTwitterUrl").value="";document.getElementById("ecInstagramUrl").value="";document.getElementById("ecFacebookUrl").value="";document.getElementById("ecTiktokUrl").value="";document.getElementById("ecYoutubeUrl").value="";document.getElementById("ecPhotosInput").value="";document.getElementById("ecPhotosPreview").innerHTML="";ecColor="";ecPickup=false;ecPhotosFiles=[];renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
 window.ecAdd=ecAdd;
-function ecEdit(id){const ev=(ecEvents[ecSelected]||[]).find(e=>String(e.id)===String(id));if(!ev)return;ecEditingId=ev.id;document.getElementById("ecFormTitle").textContent="イベントを編集";const d=new Date(ev.date+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value=ev.title||"";document.getElementById("ecDescInput").value=ev.description||"";document.getElementById("ecDetailDescInput").value=ev.detailed_description||"";document.getElementById("ecTwitterUrl").value=ev.twitter_url||"";document.getElementById("ecInstagramUrl").value=ev.instagram_url||"";document.getElementById("ecFacebookUrl").value=ev.facebook_url||"";document.getElementById("ecTiktokUrl").value=ev.tiktok_url||"";document.getElementById("ecYoutubeUrl").value=ev.youtube_url||"";ecColor=ev.color||"";ecPickup=!!ev.is_pickup;ecPhotosFiles=[];document.getElementById("ecPhotosInput").value="";ecBgFile=null;document.getElementById("ecBgInput").value="";document.getElementById("ecBgPreview").innerHTML=ev.background_image?'<img src="'+esc(ev.background_image)+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"/><div class="tiny" style="margin-top:.3rem">現在の背景画像（変更する場合のみ選択）</div>':"";renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
+function ecEdit(id){const ev=(ecEvents[ecSelected]||[]).find(e=>String(e.id)===String(id));if(!ev)return;ecEditingId=ev.id;document.getElementById("ecFormTitle").textContent="イベントを編集";const d=new Date(ev.date+"T00:00:00");document.getElementById("ecFormDate").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日";document.getElementById("ecTitleInput").value=ev.title||"";document.getElementById("ecDescInput").value=ev.description||"";document.getElementById("ecDetailDescInput").value=ev.detailed_description||"";document.getElementById("ecTwitterUrl").value=ev.twitter_url||"";document.getElementById("ecInstagramUrl").value=ev.instagram_url||"";document.getElementById("ecFacebookUrl").value=ev.facebook_url||"";document.getElementById("ecTiktokUrl").value=ev.tiktok_url||"";document.getElementById("ecYoutubeUrl").value=ev.youtube_url||"";ecColor=ev.color||"";ecPickup=!!ev.is_pickup;ecPhotosFiles=[];document.getElementById("ecPhotosInput").value="";renderEcTmpl();renderEcColors();renderEcPickup();setMsg(ecMsg2,"","");document.getElementById("ecForm").style.display="block";}
 window.ecEdit=ecEdit;
 document.getElementById("ecCancel").addEventListener("click",()=>{document.getElementById("ecForm").style.display="none";});
 let ecPhotosFiles=[];
-let ecBgFile=null;
-document.getElementById("ecBgInput").addEventListener("change",(e)=>{
-  ecBgFile=(e.target.files&&e.target.files[0])||null;
-  const prev=document.getElementById("ecBgPreview");
-  if(ecBgFile){const r=new FileReader();r.onload=ev=>{prev.innerHTML='<img src="'+ev.target.result+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"/>';};r.readAsDataURL(ecBgFile);}
-  else{prev.innerHTML="";}
-});
 document.getElementById("ecPhotosInput").addEventListener("change",(e)=>{ecPhotosFiles=Array.from(e.target.files).slice(0,5);const prev=document.getElementById("ecPhotosPreview");if(ecPhotosFiles.length){const readers=ecPhotosFiles.map(f=>new Promise(res=>{const r=new FileReader();r.onload=ev=>res({file:f,src:ev.target.result});r.readAsDataURL(f);}));Promise.all(readers).then(imgs=>{prev.innerHTML=imgs.map((img,i)=>'<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--line)"><img src="'+img.src+'" style="width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:1"/></div>').join("");});}else{prev.innerHTML="";}});
 document.getElementById("ecSave").addEventListener("click",async()=>{
   const title=document.getElementById("ecTitleInput").value.trim();
@@ -1348,26 +1531,16 @@ document.getElementById("ecSave").addEventListener("click",async()=>{
   try{
     const updateData={title:title,description:desc,detailed_description:detailedDesc||null,color:ecColor||null,is_pickup:ecPickup,
       twitter_url:twitterUrl||null,instagram_url:instagramUrl||null,facebook_url:facebookUrl||null,tiktok_url:tiktokUrl||null,youtube_url:youtubeUrl||null};
-
-    // 背景画像のアップロード（選択時のみ）
-    if(ecBgFile){
-      const bext=(ecBgFile.name.split('.').pop()||'jpg');
-      const bpath=`bg-${ecEditingId||'new'}-${Date.now()}.${bext}`;
-      const {error:bgErr}=await db.storage.from("event-backgrounds").upload(bpath,ecBgFile,{upsert:true});
-      if(bgErr)throw bgErr;
-      updateData.background_image=db.storage.from("event-backgrounds").getPublicUrl(bpath).data.publicUrl;
-    }
-
+    
     let eventId;
     if(ecEditingId){
       const r=await db.from("events").update(updateData).eq("id",ecEditingId);
       if(r.error)throw r.error;
       eventId=ecEditingId;
     }else{
-      const r=await db.from("events").insert({date:ecSelected,...updateData}).select();
+      const r=await db.from("events").insert({date:ecSelected,...updateData});
       if(r.error)throw r.error;
-      eventId=(r.data&&r.data[0])?r.data[0].id:null;
-      if(!eventId)throw new Error("イベントIDの取得に失敗しました");
+      eventId=r.data[0].id;
     }
 
     // 写真アップロード
@@ -1622,22 +1795,11 @@ window.przDel=przDel;
 
 
 /* ===== リング買い足し機能 ===== */
-let ringBuyIns = {}; // {tab_id: [{bb: 100, fee: 2000}, ...]}
+let ringBuyIns = {}; // {user_id: [{bb: 100, fee: 2000}, ...]}
 let selectedRingPlayer = null;
 let selectedRingBB = null;
 
-/* 買い足し内容・付与予定マイルを localStorage に保持（リロード/タブ移動でも消えない） */
-const RING_BUYINS_KEY = "bq_ring_buyins";
-const RING_PENDING_MILES_KEY = "bq_ring_pending_miles";
-function saveRingBuyIns(){try{localStorage.setItem(RING_BUYINS_KEY,JSON.stringify(ringBuyIns));}catch(e){}}
-function loadRingBuyInsLS(){try{const s=localStorage.getItem(RING_BUYINS_KEY);ringBuyIns=s?(JSON.parse(s)||{}):{};}catch(e){ringBuyIns={};}}
-function getRingPending(){try{return JSON.parse(localStorage.getItem(RING_PENDING_MILES_KEY)||"{}")||{};}catch(e){return {};}}
-function addRingPending(tabId,miles){if(!miles||miles<=0)return;const p=getRingPending();p[tabId]=(p[tabId]||0)+miles;try{localStorage.setItem(RING_PENDING_MILES_KEY,JSON.stringify(p));}catch(e){}}
-function clearRingPending(tabId){const p=getRingPending();delete p[tabId];try{localStorage.setItem(RING_PENDING_MILES_KEY,JSON.stringify(p));}catch(e){}}
-
 async function loadRingBuyInTab(){
-  // 買い足しデータを復元（リロード/タブ移動対策）
-  loadRingBuyInsLS();
   // リング設定を読み込み
   const saved = localStorage.getItem(RING_SETTINGS_KEY);
   if(saved){
@@ -1702,7 +1864,6 @@ document.getElementById("ringBuyInConfirm").addEventListener("click",()=>{
   const fee = ringSettings.prices[selectedRingBB];
   if(!ringBuyIns[selectedRingPlayer.id]){ringBuyIns[selectedRingPlayer.id] = [];}
   ringBuyIns[selectedRingPlayer.id].push({bb: selectedRingBB, fee: fee});
-  saveRingBuyIns();
   
   document.getElementById("ringBuyInForm").style.display = "none";
   renderRingBuyInHistory();
@@ -1738,7 +1899,6 @@ function removeRingBuyIn(userId, idx){
     ringBuyIns[userId].splice(idx, 1);
     if(!ringBuyIns[userId].length){delete ringBuyIns[userId];}
   }
-  saveRingBuyIns();
   renderRingBuyInHistory();
 }
 window.removeRingBuyIn = removeRingBuyIn;
@@ -1750,15 +1910,14 @@ document.getElementById("ringFinalBB").addEventListener("input",()=>{
   
   document.getElementById("ringDisplayFinal").textContent = finalBB;
   
-  // 割引計算：100BBごとに1000円（100BB未満は切り捨て）
+  // 割引計算：100BBごとに1000円
   const discount = Math.floor(finalBB / 100) * 1000;
   const fee = Math.max(0, totalEntry - discount);
-  // 余剰（買い足し額を超えた割引分）を 100BB=1000マイル として付与
-  const miles = (discount > totalEntry) ? (discount - totalEntry) : 0;
+  const miles = (discount > totalEntry) ? ((discount - totalEntry) / 1000) : 0;
   
   document.getElementById("ringDiscount").textContent = discount;
   document.getElementById("ringFee").textContent = fee;
-  document.getElementById("ringMilesGrant").textContent = miles;
+  document.getElementById("ringMilesGrant").textContent = Math.floor(miles);
 });
 
 document.getElementById("ringSettleConfirm").addEventListener("click",async ()=>{
@@ -1771,16 +1930,29 @@ document.getElementById("ringSettleConfirm").addEventListener("click",async ()=>
   const totalEntry = buyin.reduce((s,b)=>s+b.fee,0);
   const discount = Math.floor(finalBB / 100) * 1000;
   const fee = Math.max(0, totalEntry - discount);
-  const miles = (discount > totalEntry) ? (discount - totalEntry) : 0;
+  const miles = (discount > totalEntry) ? Math.floor((discount - totalEntry) / 1000) : 0;
   
   // プレイヤー情報を保存（後で使うため）
   const playerName = selectedRingPlayer.user_name;
-  const playerId = selectedRingPlayer.id;        // = tabs.id（この伝票に計上する）
+  const playerId = selectedRingPlayer.id;
   
-  // DB に追加（選択したプレイヤーの伝票にリング注文として保存）
+  // リング精算レコードを作成
+  const ringRecord = {
+    id: "ring_" + Date.now(),
+    item_name: playerName + " (リング)",
+    price: fee,
+    qty: 1,
+    isRing: true,
+    ringFinalBB: finalBB,
+    ringTotalEntry: totalEntry,
+    ringMiles: miles,
+    userId: playerId
+  };
+  
+  // DB に追加（伝票のリング注文として保存）
   try{
     const {error} = await db.from("tab_orders").insert({
-      tab_id: playerId,
+      tab_id: curTab.id,
       name: playerName + " (リング)",
       price: fee,
       qty: 1
@@ -1792,12 +1964,8 @@ document.getElementById("ringSettleConfirm").addEventListener("click",async ()=>
     return;
   }
   
-  // 付与予定マイルをこの伝票に紐づけて保存（精算時にまとめて付与）
-  if(miles > 0){ addRingPending(playerId, miles); }
-  
   // UI 更新
   delete ringBuyIns[playerId];
-  saveRingBuyIns();
   document.getElementById("ringBuyInForm").style.display = "none";
   selectedRingPlayer = null;
   selectedRingBB = null;
@@ -1805,8 +1973,8 @@ document.getElementById("ringSettleConfirm").addEventListener("click",async ()=>
   
   setMsg(document.getElementById("ringSettleMsg"), playerName + " をカートに追加しました ✓", "ok");
   
-  // 表示中の伝票が同じプレイヤーなら再読み込み
-  if(curTab && curTab.id === playerId){ await loadOrders(); }
+  // 伝票を再読み込み
+  await loadOrders();
   
   // プレイ中タブに戻す
   setTimeout(()=>switchTab("active"), 1000);

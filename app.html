@@ -224,6 +224,10 @@ input::placeholder{color:#7fa28d}
 .vip-user-row{display:flex;align-items:center;gap:.6rem;padding:.55rem .7rem;border-radius:10px;border:1px solid var(--line);margin-top:.5rem}
 .vip-user-row .vu-nm{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vip-user-row .vu-st{font-size:.74rem;color:var(--gold)}
+/* 管理タブ2段（親＋サブ） */
+.subgroup{display:contents}
+#adminSub .tab{font-size:.78rem;opacity:.95}
+#adminParent .tab{font-weight:700}
 </style>
 </head>
 <body>
@@ -278,6 +282,8 @@ input::placeholder{color:#7fa28d}
         <div class="nm"><small>MEMBER</small><span id="mName">—</span></div>
         <div class="bal"><div class="lab">有効マイル残高</div><div class="val"><span id="mMiles">0</span><small> pt</small></div></div>
         <div class="expire" id="mExpire" style="display:none"></div>
+        <div class="bal" id="mTicketBal" style="display:none;margin-top:.6rem;border-top:1px solid rgba(244,208,63,.25);padding-top:.6rem"><div class="lab">🎟 チケット残高</div><div class="val"><span id="mTickets">0</span><small> 枚</small></div></div>
+        <div class="expire" id="mTicketExpire" style="display:none"></div>
       </div>
 
       <!-- 👑 プラチナパス（発動中のみ表示） -->
@@ -307,6 +313,28 @@ input::placeholder{color:#7fa28d}
         <div id="myOrders" style="margin-top:.6rem"></div>
         <div class="totbar"><span class="tl">合計</span><span class="tv">¥<span id="myTotal">0</span></span></div>
         <p class="tiny center">プレイ中の伝票です。精算が済むと表示は消えます。</p>
+      </div>
+
+      <!-- 🎟 チケットで参加（残高がある時のみ表示） -->
+      <div class="panel pad" id="ticketUsePanel" style="display:none;margin-top:1.1rem">
+        <div class="eyebrow">🎟 チケットで参加</div>
+        <p class="tiny" style="margin:.3rem 0 .6rem">使うとスタッフ画面に「チケットイン」が表示されます。チップはスタッフがお渡しします。</p>
+        <label class="fld" for="tuTournament">参加する内容</label>
+        <select id="tuTournament"></select>
+        <div id="tuInfo" class="tiny" style="margin-top:.4rem"></div>
+        <div id="tuQtyWrap" style="display:none">
+          <label class="fld" for="tuQty">使う枚数</label>
+          <input id="tuQty" type="number" inputmode="numeric" min="1" value="1" />
+        </div>
+        <div class="btn-row" style="margin-top:.8rem"><button class="btn btn-gold" id="tuUse">この内容でチケットを使う</button></div>
+        <div id="tuShort" style="display:none;margin-top:.6rem;border-top:1px solid var(--line);padding-top:.7rem">
+          <div class="tiny" id="tuShortMsg" style="color:#ffb4a8"></div>
+          <div class="btn-row" style="margin-top:.5rem">
+            <button class="btn btn-ghost" id="tuCash">不足分を現金で参加</button>
+            <button class="btn btn-ghost" id="tuSingle">シングルで参加（手持ちのみ）</button>
+          </div>
+        </div>
+        <div class="msg" id="tuMsg"></div>
       </div>
       <div class="center" style="margin-top:1.1rem">
         <div class="eyebrow">店頭でこのQRを提示</div>
@@ -419,6 +447,8 @@ input::placeholder{color:#7fa28d}
             <div id="chManualWrap">
               <label class="fld" for="chManual">任意のマイルを付与（手動）</label>
               <div style="display:flex;gap:.6rem;align-items:flex-start"><input id="chManual" type="number" inputmode="numeric" min="0" style="flex:1" /><button class="btn btn-gold" style="width:auto;padding:.78rem 1rem" id="btnChManual">付与</button></div>
+              <label class="fld" for="chTicket" style="margin-top:1rem">🎟 チケットを付与（枚）</label>
+              <div style="display:flex;gap:.6rem;align-items:flex-start"><input id="chTicket" type="number" inputmode="numeric" min="0" style="flex:1" /><button class="btn btn-gold" style="width:auto;padding:.78rem 1rem" id="btnChTicket">付与</button></div>
             </div>
             <div id="chNoPerm" class="tiny" style="display:none">手動付与の権限がありません（管理者が許可したスタッフのみ可能）。</div>
             <div class="msg" id="chMsg"></div>
@@ -520,16 +550,37 @@ input::placeholder{color:#7fa28d}
       <span style="flex:1"></span>
       <button class="btn btn-ghost" style="width:auto;padding:.45rem .8rem;font-size:.8rem" id="btnAdminExit">退室</button>
     </div>
-    <div class="tabs" style="overflow-x:auto">
-      <button class="tab active" id="aTabEvent">イベント</button>
-      <button class="tab" id="aTabEventTmpl">イベントテンプレート</button>
-      <button class="tab" id="aTabPL">収支</button>
-      <button class="tab" id="aTabStaff">スタッフ</button>
-      <button class="tab" id="aTabCms">サイト編集</button>
-      <button class="tab" id="aTabPhoto">写真</button>
-      <button class="tab" id="aTabPrize">賞金</button>
-      <button class="tab" id="aTabRing">リング設定</button>
-      <button class="tab" id="aTabVip">プラチナ</button>
+    <div class="tabs" id="adminParent" style="overflow-x:auto">
+      <button class="tab active" data-group="event" onclick="adminGroup('event')">イベント</button>
+      <button class="tab" data-group="ops" onclick="adminGroup('ops')">運営</button>
+      <button class="tab" data-group="site" onclick="adminGroup('site')">サイト</button>
+      <button class="tab" data-group="prize" onclick="adminGroup('prize')">賞金</button>
+      <button class="tab" data-group="ring" onclick="adminGroup('ring')">リング</button>
+      <button class="tab" data-group="tourney" onclick="adminGroup('tourney')">トーナメント</button>
+    </div>
+    <div class="tabs" id="adminSub" style="overflow-x:auto;margin-top:.4rem">
+      <span class="subgroup" data-group="event">
+        <button class="tab active" id="aTabEvent">イベント</button>
+        <button class="tab" id="aTabEventTmpl">イベントテンプレート</button>
+      </span>
+      <span class="subgroup" data-group="ops" style="display:none">
+        <button class="tab" id="aTabStaff">スタッフ</button>
+        <button class="tab" id="aTabPL">収支</button>
+        <button class="tab" id="aTabVip">プラチナ</button>
+      </span>
+      <span class="subgroup" data-group="site" style="display:none">
+        <button class="tab" id="aTabCms">サイト編集</button>
+        <button class="tab" id="aTabPhoto">写真</button>
+      </span>
+      <span class="subgroup" data-group="prize" style="display:none">
+        <button class="tab" id="aTabPrize">賞金</button>
+      </span>
+      <span class="subgroup" data-group="ring" style="display:none">
+        <button class="tab" id="aTabRing">リング設定</button>
+      </span>
+      <span class="subgroup" data-group="tourney" style="display:none">
+        <button class="tab" id="aTabTourney">トーナメント</button>
+      </span>
     </div>
 
     <!-- イベント管理 -->
@@ -752,6 +803,61 @@ input::placeholder{color:#7fa28d}
         </div>
       </div>
     </div>
+
+    <!-- トーナメント（料金テンプレ＋チケット設定） -->
+    <div class="tpanel" id="apanel-tourney">
+      <div class="pad">
+        <!-- チケットの価値（グローバル） -->
+        <div class="panel pad">
+          <div class="eyebrow">🎟 チケットの価値</div>
+          <p class="tiny" style="margin:.3rem 0 .6rem">チケット1枚あたりの価値（円）。賞金プールへの換算額にもなります。</p>
+          <label class="fld" for="tkValue">1枚 ＝ ￥</label>
+          <input id="tkValue" type="number" inputmode="numeric" min="0" value="5000" />
+          <label class="fld" for="tkMax">1回の使用上限（枚・空欄で無制限）</label>
+          <input id="tkMax" type="number" inputmode="numeric" min="0" placeholder="無制限" />
+          <div class="btn-row"><button class="btn btn-gold" id="tkSave">保存</button></div>
+          <div class="msg" id="tkMsg"></div>
+        </div>
+
+        <!-- トーナメント・テンプレ一覧 -->
+        <div class="eyebrow" style="margin-top:1.2rem">トーナメント・テンプレ</div>
+        <p class="tiny" style="margin:.3rem 0 .6rem">トナメごとに料金（エントリー/リエントリー/アドオン）と、通常参加に必要なチケット枚数を登録します。</p>
+        <div id="tnList"><div class="empty">読み込み中…</div></div>
+
+        <!-- 追加／編集フォーム -->
+        <div class="panel pad" style="margin-top:.8rem">
+          <div class="eyebrow" id="tnFormTitle">テンプレを追加</div>
+          <label class="fld" for="tnName">名前</label>
+          <input id="tnName" type="text" maxlength="40" placeholder="例）¥10,000メイン" />
+
+          <label class="fld" for="tnPrize">賞金テンプレ（プール先・任意）</label>
+          <select id="tnPrize"></select>
+
+          <label class="fld" for="tnTickets">通常参加に必要なチケット枚数</label>
+          <input id="tnTickets" type="number" inputmode="numeric" min="0" value="0" />
+
+          <label class="fld" for="tnRound">不足端数の扱い</label>
+          <select id="tnRound">
+            <option value="ceil">切り上げ（多めに必要）</option>
+            <option value="floor">切り捨て（不足分は現金）</option>
+            <option value="exact">ちょうど（割り切れ前提）</option>
+          </select>
+
+          <label style="display:flex;align-items:center;gap:.5rem;margin-top:.8rem;font-size:.88rem;color:var(--cream)"><input type="checkbox" id="tnSingle" style="width:auto;margin:0" checked> シングル参加を許可する</label>
+
+          <div class="divider"></div>
+          <label class="fld">料金行（エントリー／リエントリー／アドオン等）</label>
+          <div id="tnFeeRows"></div>
+          <button type="button" class="btn btn-ghost" id="tnAddFee" style="margin-top:.6rem">＋ 料金行を追加</button>
+
+          <div class="btn-row" style="margin-top:1rem">
+            <button class="btn btn-ghost" id="tnCancel">クリア</button>
+            <button class="btn btn-gold" id="tnSave">保存</button>
+          </div>
+          <div class="msg" id="tnMsg"></div>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -792,11 +898,13 @@ async function doLogin(){
 /* ===== マイページ ===== */
 let qrInst=null;
 async function enterMember(u){
+  mUser={id:u.id,name:u.name};
   showScreen("screen-member");
   document.getElementById("mName").textContent=u.name;
   const box=document.getElementById("qrBox");box.innerHTML="";
   qrInst=new QRCode(box,{text:String(u.id),width:170,height:170,colorDark:"#0f3320",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.M});
   await loadMile(u.id); await loadHist(u.id); await loadActiveTab(u.id);
+  await loadTicket(u.id); await loadTicketUseOptions();
   await loadVipBadge(u.id); initMemberLeaderboard(u.id);
 }
 async function loadActiveTab(id){
@@ -828,6 +936,138 @@ async function loadMile(id){
     }else ex.style.display="none";
   }catch(e){console.error(e);document.getElementById("mMiles").textContent="—";}
 }
+async function loadTicket(id){
+  const bal=document.getElementById("mTicketBal");
+  const ex=document.getElementById("mTicketExpire");
+  try{
+    const {data,error}=await db.rpc("ticket_balance",{p_user:id});
+    if(error)throw error;
+    const r=(data&&data[0])||{valid:0,next_amount:0,next_date:null};
+    if(r.valid>0){
+      document.getElementById("mTickets").textContent=yen(r.valid);
+      bal.style.display="block";
+      const up=document.getElementById("ticketUsePanel");if(up)up.style.display="block";
+      if(r.next_date&&r.next_amount>0){
+        const d=new Date(r.next_date+"T00:00:00");
+        ex.style.display="block";
+        ex.innerHTML="まもなく失効：<b>"+yen(r.next_amount)+" 枚</b>（"+(d.getMonth()+1)+"月"+d.getDate()+"日）";
+      }else ex.style.display="none";
+    }else{bal.style.display="none";ex.style.display="none";const up=document.getElementById("ticketUsePanel");if(up)up.style.display="none";}
+  }catch(e){console.error(e);bal.style.display="none";ex.style.display="none";}
+}
+/* ===== チケットで参加（客側） ===== */
+let mUser=null, tuTemplates=[], tkValueCache=5000;
+async function loadTicketUseOptions(){
+  const sel=document.getElementById("tuTournament");if(!sel)return;
+  try{const s=await db.from("ticket_settings").select("ticket_value_yen").eq("id",1).limit(1);tkValueCache=(s.data&&s.data[0]&&s.data[0].ticket_value_yen)||5000;}catch(e){console.error(e);}
+  try{const r=await db.from("tournament_templates").select("*").eq("active",true).order("sort_order",{ascending:true});tuTemplates=r.data||[];}catch(e){console.error(e);tuTemplates=[];}
+  sel.innerHTML=tuTemplates.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'（'+yen(t.ticket_normal||0)+'枚）</option>').join("")
+    +'<option value="__manual__">枚数を直接指定する</option>';
+  tuOnChange();
+}
+function tuSelectedTemplate(){const v=document.getElementById("tuTournament").value;return tuTemplates.find(t=>String(t.id)===String(v));}
+function tuOnChange(){
+  const v=document.getElementById("tuTournament").value;
+  const qw=document.getElementById("tuQtyWrap");
+  const info=document.getElementById("tuInfo");
+  if(v==="__manual__"){
+    qw.style.display="block";
+    info.textContent="使う枚数を入力してください。";
+  }else{
+    qw.style.display="none";
+    const t=tuSelectedTemplate();
+    const need=t?(t.ticket_normal||0):0;
+    info.innerHTML="必要枚数：<b>"+yen(need)+"枚</b>"+(need>0?"（チケット1枚＝¥"+yen(tkValueCache)+"）":"");
+  }
+  setMsg(document.getElementById("tuMsg"),"","");
+}
+document.getElementById("tuTournament").addEventListener("change",function(){tuHideShort();tuOnChange();});
+async function ensureOpenTab(userId,userName){
+  const {data:ex}=await db.from("tabs").select("*").eq("user_id",userId).eq("status","open").order("opened_at",{ascending:false}).limit(1);
+  if(ex&&ex.length)return ex[0];
+  const {data:ins,error}=await db.from("tabs").insert({user_id:userId,user_name:userName,opened_by:"本人(チケット)",status:"open"}).select().limit(1);
+  if(error)throw error;
+  return ins[0];
+}
+let tuCtx=null; // {have, need, template, label}
+async function getTicketBalance(id){
+  try{const {data}=await db.rpc("ticket_balance",{p_user:id});return (data&&data[0]&&data[0].valid)||0;}catch(e){console.error(e);return 0;}
+}
+function tuHideShort(){const s=document.getElementById("tuShort");if(s)s.style.display="none";}
+// 共通：消費＋伝票行追加
+async function tuDoEntry(o){
+  const tuMsg=document.getElementById("tuMsg");
+  setMsg(tuMsg,"処理中…","");
+  try{
+    if(o.spendQty>0){
+      const {data:sp,error:se}=await db.rpc("spend_tickets",{p_user:mUser.id,p_qty:o.spendQty,p_reason:o.label,p_staff:null,p_tab_id:null});
+      if(se)throw se;
+      const res=(sp&&sp[0])||null;
+      if(!res||!res.ok){setMsg(tuMsg,(res&&res.message==="残高不足")?"チケットが不足しています（残高が変わった可能性があります）":"使用できませんでした","err");return;}
+    }
+    const tab=await ensureOpenTab(mUser.id,mUser.name);
+    await db.from("tab_orders").insert({tab_id:tab.id,name:o.rowName,price:o.price||0,qty:1,pool_value:o.poolVal||0,charge:o.price||0,is_single:!!o.isSingle});
+    tuHideShort();tuCtx=null;
+    setMsg(tuMsg,o.successMsg,"ok");
+    await loadTicket(mUser.id); await loadActiveTab(mUser.id); await loadTicketUseOptions();
+  }catch(e){console.error(e);setMsg(tuMsg,"使用に失敗しました","err");}
+}
+document.getElementById("tuUse").addEventListener("click",async()=>{
+  if(!mUser){return;}
+  const tuMsg=document.getElementById("tuMsg");
+  tuHideShort();
+  const v=document.getElementById("tuTournament").value;
+  const have=await getTicketBalance(mUser.id);
+  if(have<=0){setMsg(tuMsg,"チケットがありません","err");return;}
+
+  // 枚数直接指定モード（A/Bなし・プール対象外）
+  if(v==="__manual__"){
+    const qty=parseInt(document.getElementById("tuQty").value,10)||0;
+    if(qty<=0){setMsg(tuMsg,"枚数を確認してください","err");return;}
+    if(qty>have){setMsg(tuMsg,"残高は "+yen(have)+"枚 です","err");return;}
+    if(!confirm("🎟 "+yen(qty)+"枚 を使います。よろしいですか？"))return;
+    return tuDoEntry({spendQty:qty,label:"チケットイン（枚数指定）",rowName:"🎟 チケットエントリー（"+qty+"枚）",price:0,poolVal:0,isSingle:false,
+      successMsg:"🎟 チケットを使いました ✓（残り "+yen(have-qty)+"枚）"});
+  }
+
+  // トーナメント参加モード
+  const t=tuSelectedTemplate();
+  const need=t?(t.ticket_normal||0):0;
+  if(need<=0){setMsg(tuMsg,"このトーナメントはチケット参加が設定されていません","err");return;}
+
+  if(have>=need){
+    if(!confirm("🎟 "+yen(need)+"枚 で参加します。よろしいですか？"))return;
+    return tuDoEntry({spendQty:need,label:"チケットイン："+t.name,rowName:"🎟 チケットエントリー（"+need+"枚）",price:0,poolVal:tkValueCache*need,isSingle:false,
+      successMsg:"🎟 チケットインしました ✓（残り "+yen(have-need)+"枚）スタッフがチップをお渡しします。"});
+  }
+
+  // 不足 → 上限提示＋(A)/(B)
+  tuCtx={have,need,template:t,label:t.name};
+  const cash=(need-have)*tkValueCache;
+  document.getElementById("tuShortMsg").innerHTML=
+    "チケットが不足しています。必要 <b>"+yen(need)+"枚</b> ／ 使用可能 <b>"+yen(have)+"枚</b><br>"+
+    "・現金併用：手持ち "+yen(have)+"枚 ＋ 現金 <b>¥"+yen(cash)+"</b>"+
+    (t.single_enabled?"<br>・シングル："+yen(have)+"枚で出場（初期チップ少なめ）":"<br><span style=\"opacity:.7\">・このトーナメントはシングル不可</span>");
+  document.getElementById("tuSingle").style.display=t.single_enabled?"":"none";
+  document.getElementById("tuShort").style.display="block";
+  setMsg(tuMsg,"","");
+});
+// (A) 不足分を現金で参加
+document.getElementById("tuCash").addEventListener("click",async()=>{
+  if(!tuCtx)return;
+  const {have,need}=tuCtx;const cash=(need-have)*tkValueCache;
+  if(!confirm("🎟 "+yen(have)+"枚 ＋ 現金¥"+yen(cash)+" で参加します。よろしいですか？"))return;
+  return tuDoEntry({spendQty:have,label:"チケットイン："+tuCtx.label+"（現金併用）",rowName:"🎟 チケットエントリー（"+have+"枚＋現金¥"+yen(cash)+"）",price:cash,poolVal:tkValueCache*need,isSingle:false,
+    successMsg:"🎟 参加受付しました ✓ 不足分¥"+yen(cash)+"は精算時にお支払いください。"});
+});
+// (B) シングルで参加（手持ちのみ）
+document.getElementById("tuSingle").addEventListener("click",async()=>{
+  if(!tuCtx)return;
+  const {have}=tuCtx;
+  if(!confirm("🎟 "+yen(have)+"枚 でシングル参加します（初期チップ少なめ）。よろしいですか？"))return;
+  return tuDoEntry({spendQty:have,label:"チケットイン："+tuCtx.label+"（シングル）",rowName:"🎟 チケットエントリー（シングル・"+have+"枚）",price:0,poolVal:tkValueCache*have,isSingle:true,
+    successMsg:"🎟 シングルで受付しました ✓ スタッフがチップをお渡しします。"});
+});
 async function loadHist(id){
   const w=document.getElementById("histList");
   try{
@@ -840,7 +1080,7 @@ async function loadHist(id){
     }).join("");
   }catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}
 }
-document.getElementById("btnRefresh").addEventListener("click",async()=>{const id=localStorage.getItem(LS_USER);if(id){await loadMile(id);await loadHist(id);await loadActiveTab(id);await loadVipBadge(id);const sel=document.getElementById("mLbMonth");if(sel&&sel.value)loadMemberLeaderboard(id,sel.value);}});
+document.getElementById("btnRefresh").addEventListener("click",async()=>{const id=localStorage.getItem(LS_USER);if(id){await loadMile(id);await loadHist(id);await loadActiveTab(id);await loadTicket(id);await loadVipBadge(id);const sel=document.getElementById("mLbMonth");if(sel&&sel.value)loadMemberLeaderboard(id,sel.value);}});
 /* マイページ表示中は会計を自動更新（プレイ中の金額をライブ反映） */
 setInterval(()=>{const id=localStorage.getItem(LS_USER);if(id&&document.getElementById("screen-member").classList.contains("active"))loadActiveTab(id);},15000);
 document.getElementById("btnLogout").addEventListener("click",()=>{localStorage.removeItem(LS_USER);document.getElementById("loginName").value="";showScreen("screen-login");});
@@ -965,6 +1205,157 @@ document.getElementById("vipClear").addEventListener("click",async()=>{
   }catch(e){console.error(e);setMsg(document.getElementById("vipMsg"),"解除に失敗しました","err");}
 });
 
+/* ===== 管理：トーナメント・テンプレ ＆ チケット設定 ===== */
+let tnEditing=null, tnFees=[], tnPrizeCache=[];
+function tourneyInit(){
+  loadTicketSettings();
+  tnLoadPrizeOptions().then(loadTournaments);
+  tnClearForm();
+}
+/* --- チケット設定 --- */
+async function loadTicketSettings(){
+  try{
+    const {data,error}=await db.from("ticket_settings").select("*").eq("id",1).limit(1);
+    if(error)throw error;
+    const s=(data&&data[0])||{ticket_value_yen:5000,max_use_per_time:null};
+    document.getElementById("tkValue").value=s.ticket_value_yen;
+    document.getElementById("tkMax").value=(s.max_use_per_time==null?"":s.max_use_per_time);
+  }catch(e){console.error(e);}
+}
+document.getElementById("tkSave").addEventListener("click",async()=>{
+  const val=parseInt(document.getElementById("tkValue").value,10)||0;
+  const maxRaw=document.getElementById("tkMax").value.trim();
+  const max=maxRaw===""?null:(parseInt(maxRaw,10)||0);
+  if(val<=0){setMsg(document.getElementById("tkMsg"),"1枚の価値を入力してください","err");return;}
+  try{
+    const {error}=await db.from("ticket_settings").upsert({id:1,ticket_value_yen:val,max_use_per_time:max,updated_at:new Date().toISOString()},{onConflict:"id"});
+    if(error)throw error;
+    setMsg(document.getElementById("tkMsg"),"保存しました ✓","ok");
+  }catch(e){console.error(e);setMsg(document.getElementById("tkMsg"),"保存に失敗しました","err");}
+});
+/* --- 賞金テンプレ選択肢 --- */
+async function tnLoadPrizeOptions(){
+  try{const r=await db.from("prize_templates").select("*").order("sort_order",{ascending:true});tnPrizeCache=r.data||[];}
+  catch(e){console.error(e);tnPrizeCache=[];}
+  const sel=document.getElementById("tnPrize");
+  sel.innerHTML='<option value="">（プールに含めない）</option>'+tnPrizeCache.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join("");
+}
+/* --- 料金行 --- */
+function tnAddFeeRow(d){
+  tnFees.push({name:(d&&d.name)||"",price:(d&&d.price)||0,is_pool:d?!!d.is_pool:true,is_ticket_payable:d?!!d.is_ticket_payable:true});
+  tnRenderFees();
+}
+function tnRenderFees(){
+  const w=document.getElementById("tnFeeRows");
+  if(!tnFees.length){w.innerHTML='<div class="tiny">料金行がありません。「＋ 料金行を追加」で追加してください。</div>';return;}
+  w.innerHTML=tnFees.map((f,i)=>(
+    '<div class="panel pad" style="margin-top:.5rem">'+
+      '<div style="display:flex;gap:.5rem;align-items:flex-start">'+
+        '<input type="text" placeholder="名称（例：エントリー）" value="'+esc(f.name)+'" oninput="tnFeeSet('+i+',\'name\',this.value)" style="flex:2" />'+
+        '<input type="number" inputmode="numeric" min="0" placeholder="￥" value="'+(f.price||0)+'" oninput="tnFeeSet('+i+',\'price\',this.value)" style="flex:1" />'+
+        '<button type="button" class="mini" onclick="tnFeeDel('+i+')" style="padding:.5rem .7rem;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--cream);cursor:pointer">×</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:1.2rem;margin-top:.5rem;flex-wrap:wrap">'+
+        '<label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:var(--cream)"><input type="checkbox" style="width:auto;margin:0" '+(f.is_pool?"checked":"")+' onchange="tnFeeSet('+i+',\'is_pool\',this.checked)"> プールに含める</label>'+
+        '<label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:var(--cream)"><input type="checkbox" style="width:auto;margin:0" '+(f.is_ticket_payable?"checked":"")+' onchange="tnFeeSet('+i+',\'is_ticket_payable\',this.checked)"> チケット可</label>'+
+      '</div>'+
+    '</div>'
+  )).join("");
+}
+function tnFeeSet(i,k,v){if(!tnFees[i])return;tnFees[i][k]=(k==="price")?(parseInt(v,10)||0):v;}
+function tnFeeDel(i){tnFees.splice(i,1);tnRenderFees();}
+window.tnFeeSet=tnFeeSet;window.tnFeeDel=tnFeeDel;
+document.getElementById("tnAddFee").addEventListener("click",()=>tnAddFeeRow());
+/* --- 一覧 --- */
+async function loadTournaments(){
+  const w=document.getElementById("tnList");
+  try{
+    const {data,error}=await db.from("tournament_templates").select("*").order("sort_order",{ascending:true});
+    if(error)throw error;
+    const list=data||[];
+    if(!list.length){w.innerHTML='<div class="empty">テンプレがありません。下から追加してください。</div>';return;}
+    w.innerHTML=list.map(t=>{
+      const pz=tnPrizeCache.find(p=>String(p.id)===String(t.prize_template_id));
+      const pzName=pz?esc(pz.name):"（プールなし）";
+      return '<div class="st-item"><span class="snm">'+esc(t.name)+
+        ' <span style="font-size:.66rem;color:var(--gold)">🎟'+ (t.ticket_normal||0) +'枚</span>'+
+        ' <small style="display:block;color:var(--dim)">'+pzName+(t.single_enabled?' ・シングル可':'')+'</small></span>'+
+        '<button class="mini" onclick="tnEdit(\''+t.id+'\')">編集</button>'+
+        '<button class="mini" onclick="tnDel(\''+t.id+'\')">削除</button></div>';
+    }).join("");
+  }catch(e){console.error(e);w.innerHTML='<div class="empty">読み込み失敗</div>';}
+}
+/* --- フォーム --- */
+function tnClearForm(){
+  tnEditing=null;tnFees=[];
+  document.getElementById("tnFormTitle").textContent="テンプレを追加";
+  document.getElementById("tnName").value="";
+  document.getElementById("tnPrize").value="";
+  document.getElementById("tnTickets").value=0;
+  document.getElementById("tnRound").value="ceil";
+  document.getElementById("tnSingle").checked=true;
+  tnAddFeeRow({name:"エントリー",price:0,is_pool:true,is_ticket_payable:true});
+  setMsg(document.getElementById("tnMsg"),"","");
+}
+document.getElementById("tnCancel").addEventListener("click",tnClearForm);
+async function tnEdit(id){
+  try{
+    const {data:t}=await db.from("tournament_templates").select("*").eq("id",id).limit(1);
+    if(!t||!t[0])return;
+    const tt=t[0];tnEditing=id;
+    document.getElementById("tnFormTitle").textContent="テンプレを編集";
+    document.getElementById("tnName").value=tt.name||"";
+    document.getElementById("tnPrize").value=tt.prize_template_id||"";
+    document.getElementById("tnTickets").value=tt.ticket_normal||0;
+    document.getElementById("tnRound").value=tt.round||"ceil";
+    document.getElementById("tnSingle").checked=!!tt.single_enabled;
+    const {data:f}=await db.from("tournament_fee_items").select("*").eq("tournament_id",id).order("sort_order",{ascending:true});
+    tnFees=(f||[]).map(x=>({name:x.name,price:x.price,is_pool:x.is_pool,is_ticket_payable:x.is_ticket_payable}));
+    if(!tnFees.length)tnFees=[{name:"エントリー",price:0,is_pool:true,is_ticket_payable:true}];
+    tnRenderFees();
+    setMsg(document.getElementById("tnMsg"),"","");
+    document.getElementById("tnName").scrollIntoView({behavior:"smooth",block:"nearest"});
+  }catch(e){console.error(e);}
+}
+window.tnEdit=tnEdit;
+async function tnDel(id){
+  if(!confirm("このテンプレを削除しますか？（料金行も削除されます）"))return;
+  try{await db.from("tournament_templates").delete().eq("id",id);loadTournaments();}
+  catch(e){console.error(e);alert("削除に失敗しました");}
+}
+window.tnDel=tnDel;
+document.getElementById("tnSave").addEventListener("click",async()=>{
+  const name=document.getElementById("tnName").value.trim();
+  if(!name){setMsg(document.getElementById("tnMsg"),"名前を入力してください","err");return;}
+  const payload={
+    name,
+    prize_template_id:document.getElementById("tnPrize").value||null,
+    ticket_normal:parseInt(document.getElementById("tnTickets").value,10)||0,
+    round:document.getElementById("tnRound").value||"ceil",
+    single_enabled:document.getElementById("tnSingle").checked
+  };
+  const fees=tnFees.filter(f=>(f.name||"").trim()!=="");
+  try{
+    let tid=tnEditing;
+    if(tnEditing){
+      const {error}=await db.from("tournament_templates").update(payload).eq("id",tnEditing);
+      if(error)throw error;
+    }else{
+      const {data,error}=await db.from("tournament_templates").insert(payload).select("id").limit(1);
+      if(error)throw error;tid=data[0].id;
+    }
+    // 料金行は入れ替え（既存削除→再挿入）
+    await db.from("tournament_fee_items").delete().eq("tournament_id",tid);
+    if(fees.length){
+      const rows=fees.map((f,i)=>({tournament_id:tid,name:f.name,price:parseInt(f.price,10)||0,is_pool:!!f.is_pool,is_ticket_payable:!!f.is_ticket_payable,sort_order:i}));
+      const {error:fe}=await db.from("tournament_fee_items").insert(rows);
+      if(fe)throw fe;
+    }
+    setMsg(document.getElementById("tnMsg"),"保存しました ✓","ok");
+    tnClearForm();loadTournaments();
+  }catch(e){console.error(e);setMsg(document.getElementById("tnMsg"),"保存に失敗しました","err");}
+});
+
 /* ===== 新規登録 ===== */
 const regMsg=document.getElementById("regMsg");
 document.getElementById("btnRegOpen").addEventListener("click",()=>{document.getElementById("regName").value="";document.getElementById("regPin").value="";document.getElementById("regPin2").value="";setMsg(regMsg,"","");showScreen("screen-register");});
@@ -1056,11 +1447,13 @@ async function loadActive(){
     db.from("store_status").update({count:(tabs||[]).length,updated_at:new Date().toISOString()}).eq("id",1).then(()=>{});
     if(!tabs||!tabs.length){list.innerHTML='<div class="empty">プレイ中のお客様はいません。「＋QRで追加」から登録してください。</div>';return;}
     const ids=tabs.map(t=>t.id);
-    const {data:ords}=await db.from("tab_orders").select("tab_id,price,qty").in("tab_id",ids);
-    const sums={};(ords||[]).forEach(o=>{sums[o.tab_id]=(sums[o.tab_id]||0)+o.price*o.qty;});
+    const {data:ords}=await db.from("tab_orders").select("tab_id,price,qty,name,is_single").in("tab_id",ids);
+    const sums={};const tkSet={};const sgSet={};(ords||[]).forEach(o=>{sums[o.tab_id]=(sums[o.tab_id]||0)+o.price*o.qty;if(o.name&&o.name.indexOf("チケットエントリー")>=0)tkSet[o.tab_id]=true;if(o.is_single)sgSet[o.tab_id]=true;});
     list.innerHTML=tabs.map(t=>{const d=new Date(t.opened_at);
       const tm=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+"開始";
-      return '<div class="prow" onclick="openTab(\''+t.id+'\')"><div class="pn">'+esc(t.user_name)+'<small>'+tm+'</small></div><div class="pt">¥'+yen(sums[t.id]||0)+'</div></div>';
+      const tk=tkSet[t.id]?' <span style="font-size:.66rem;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:0 .3rem">🎟 チケットイン</span>':'';
+      const sg=sgSet[t.id]?' <span style="font-size:.66rem;color:#ffb4a8;border:1px solid var(--red);border-radius:6px;padding:0 .3rem">シングル</span>':'';
+      return '<div class="prow" onclick="openTab(\''+t.id+'\')"><div class="pn">'+esc(t.user_name)+tk+sg+'<small>'+tm+'</small></div><div class="pt">¥'+yen(sums[t.id]||0)+'</div></div>';
     }).join("");
   }catch(e){console.error(e);list.innerHTML='<div class="empty">読み込み失敗（接続設定をご確認ください）</div>';}
 }
@@ -1162,6 +1555,7 @@ async function openCharge(){
   if(!requireStaff())return;
   document.getElementById("chWho").textContent=curTab.user_name;
   document.getElementById("chManual").value="";setMsg(chMsgEl,"","");
+  {const tk=document.getElementById("chTicket");if(tk)tk.value="";}
   {const cb=document.getElementById("chRankBoost");if(cb)cb.checked=false;}
   document.getElementById("chManualWrap").style.display=currentStaffGrant?"block":"none";
   document.getElementById("chNoPerm").style.display=currentStaffGrant?"none":"block";
@@ -1172,13 +1566,24 @@ async function openCharge(){
   try{const r=await db.from("menu_items").select("name,is_entry");(r.data||[]).forEach(m=>{if(m.is_entry)entryNames.add(m.name);});}catch(e){console.error(e);}
   const start=new Date();start.setHours(0,0,0,0);
   let tabs=[],ords=[];
-  try{const rt=await db.from("tabs").select("id,user_id").gte("opened_at",start.toISOString());tabs=rt.data||[];const ids=tabs.map(t=>t.id);if(ids.length){const ro=await db.from("tab_orders").select("name,price,qty,tab_id").in("tab_id",ids);ords=ro.data||[];}}catch(e){console.error(e);}
-  const map={};ords.forEach(o=>{if(!map[o.name])map[o.name]={name:o.name,total:0};map[o.name].total+=o.price*o.qty;});
+  try{const rt=await db.from("tabs").select("id,user_id").gte("opened_at",start.toISOString());tabs=rt.data||[];const ids=tabs.map(t=>t.id);if(ids.length){const ro=await db.from("tab_orders").select("name,price,qty,tab_id,pool_value").in("tab_id",ids);ords=ro.data||[];}}catch(e){console.error(e);}
+  const isTicketName=n=>n&&n.indexOf("チケットエントリー")>=0;
+  const normalOrds=ords.filter(o=>!isTicketName(o.name));
+  const ticketOrds=ords.filter(o=>isTicketName(o.name));
+  // 通常項目（名称ごと・price合算）
+  const map={};normalOrds.forEach(o=>{if(!map[o.name])map[o.name]={name:o.name,total:0};map[o.name].total+=o.price*o.qty;});
   chItems=Object.values(map);
+  // チケット参加分は pool_value を満額としてまとめて1項目に（案A）
+  const ticketPool=ticketOrds.reduce((s,o)=>s+(o.pool_value||0),0);
+  if(ticketOrds.length){chItems.push({name:"🎟 チケットエントリー",total:ticketPool,on:true,isTicket:true});}
   const useDefault=entryNames.size>0;
-  chItems.forEach(it=>{it.on=useDefault?entryNames.has(it.name):(it.name.indexOf("エントリー")>=0||it.name.indexOf("アドオン")>=0);});
+  chItems.forEach(it=>{if(it.isTicket){it.on=true;return;}it.on=useDefault?entryNames.has(it.name):(it.name.indexOf("エントリー")>=0||it.name.indexOf("アドオン")>=0);});
   const tabUser={};tabs.forEach(t=>tabUser[t.id]=t.user_id);
-  const entrantSet=new Set();ords.forEach(o=>{const it=chItems.find(x=>x.name===o.name);if(it&&it.on&&tabUser[o.tab_id])entrantSet.add(tabUser[o.tab_id]);});
+  const entrantSet=new Set();
+  normalOrds.forEach(o=>{const it=chItems.find(x=>x.name===o.name);if(it&&it.on&&tabUser[o.tab_id])entrantSet.add(tabUser[o.tab_id]);});
+  // チケット参加者も人数に含める（チケット項目がONのとき）
+  const tkItem=chItems.find(x=>x.isTicket);
+  if(tkItem&&tkItem.on){ticketOrds.forEach(o=>{if(tabUser[o.tab_id])entrantSet.add(tabUser[o.tab_id]);});}
   document.getElementById("chPlayers").value=entrantSet.size;
   renderItems();recomputeTotal();renderBreak();
   showActiveView("charge");
@@ -1218,6 +1623,19 @@ document.getElementById("btnChManual").addEventListener("click",async()=>{
   if(m<=0){setMsg(chMsgEl,"マイル数を入力してください","err");return;}
   if(!confirm(curTab.user_name+" 様に "+yen(m)+"pt を付与します。よろしいですか？"))return;
   await doGrant(m);
+});
+document.getElementById("btnChTicket").addEventListener("click",async()=>{
+  if(!currentStaffGrant){setMsg(chMsgEl,"付与の権限がありません","err");return;}
+  const n=parseInt(document.getElementById("chTicket").value,10)||0;
+  if(n<=0){setMsg(chMsgEl,"チケット枚数を入力してください","err");return;}
+  if(!confirm(curTab.user_name+" 様に 🎟 "+yen(n)+"枚 を付与します。よろしいですか？"))return;
+  try{
+    const {data,error}=await db.rpc("grant_tickets",{p_user:curTab.user_id,p_name:curTab.user_name,p_qty:n,p_reason:"チケット付与",p_staff:currentStaff});
+    if(error)throw error;
+    setMsg(chMsgEl,"🎟 "+yen(n)+"枚 を付与しました ✓（残高 "+yen(data)+"枚）","ok");
+    document.getElementById("chTicket").value="";
+    setTimeout(()=>showActiveView("tab"),1300);
+  }catch(e){console.error(e);setMsg(chMsgEl,"チケット付与に失敗しました","err");}
 });
 async function doGrant(m){
   // 実マイル(amount)は常に等倍。ランキング用BQRPのみ倍率を適用して裏に保存。
@@ -1446,9 +1864,20 @@ document.getElementById("btnAdminEnter").addEventListener("click",adminEnter);
 function adminEnter(){const pin=document.getElementById("adminPin").value.trim();if(pin!==ADMIN_PIN){setMsg(adminPinMsg,"PINが違います","err");return;}document.getElementById("adminPin").value="";setMsg(adminPinMsg,"","");showScreen("screen-admin");adminTab("event");}
 document.getElementById("btnAdminExit").addEventListener("click",()=>showScreen("screen-login"));
 function adminTab(t){
-  [["aTabEvent","apanel-event","event"],["aTabEventTmpl","apanel-eventtmpl","eventtmpl"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"],["aTabRing","apanel-ring","ring"],["aTabVip","apanel-vip","vip"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
-  if(t==="event")ecInit();else if(t==="eventtmpl"){loadEcTmplMgr();}else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();else if(t==="prize"){przClear();loadPrize();}else if(t==="ring"){loadRingSettings();}
+  [["aTabEvent","apanel-event","event"],["aTabEventTmpl","apanel-eventtmpl","eventtmpl"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"],["aTabRing","apanel-ring","ring"],["aTabVip","apanel-vip","vip"],["aTabTourney","apanel-tourney","tourney"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
+  if(t==="event")ecInit();else if(t==="eventtmpl"){loadEcTmplMgr();}else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();else if(t==="prize"){przClear();loadPrize();}else if(t==="ring"){loadRingSettings();}else if(t==="vip"){vipInit();}else if(t==="tourney"){tourneyInit();}
+  adminSyncParent(t);
 }
+/* 親タブ（グループ）同期 */
+const ADMIN_GROUP_CHILDREN={event:["event","eventtmpl"],ops:["staff","pl","vip"],site:["cms","photo"],prize:["prize"],ring:["ring"],tourney:["tourney"]};
+function adminGroupOf(t){for(const g in ADMIN_GROUP_CHILDREN){if(ADMIN_GROUP_CHILDREN[g].indexOf(t)>=0)return g;}return null;}
+function adminSyncParent(t){
+  const g=adminGroupOf(t);
+  document.querySelectorAll("#adminParent .tab").forEach(b=>b.classList.toggle("active",b.dataset.group===g));
+  document.querySelectorAll("#adminSub .subgroup").forEach(s=>{s.style.display=(s.dataset.group===g)?"contents":"none";});
+}
+function adminGroup(g){const kids=ADMIN_GROUP_CHILDREN[g];if(kids&&kids.length)adminTab(kids[0]);}
+window.adminGroup=adminGroup;
 document.getElementById("aTabEvent").addEventListener("click",()=>adminTab("event"));
 document.getElementById("aTabEventTmpl").addEventListener("click",()=>adminTab("eventtmpl"));
 document.getElementById("aTabPL").addEventListener("click",()=>adminTab("pl"));
@@ -1457,7 +1886,8 @@ document.getElementById("aTabCms").addEventListener("click",()=>adminTab("cms"))
 document.getElementById("aTabPhoto").addEventListener("click",()=>adminTab("photo"));
 document.getElementById("aTabPrize").addEventListener("click",()=>adminTab("prize"));
 document.getElementById("aTabRing").addEventListener("click",()=>adminTab("ring"));
-document.getElementById("aTabVip").addEventListener("click",()=>{adminTab("vip");vipInit();});
+document.getElementById("aTabVip").addEventListener("click",()=>adminTab("vip"));
+document.getElementById("aTabTourney").addEventListener("click",()=>adminTab("tourney"));
 
 /* ---- イベント管理 ---- */
 const EVENT_COLORS=[{v:"",css:"#f4d03f"},{v:"#e74c3c",css:"#e74c3c"},{v:"#e67e22",css:"#e67e22"},{v:"#2ecc71",css:"#2ecc71"},{v:"#3498db",css:"#3498db"},{v:"#9b59b6",css:"#9b59b6"},{v:"#ff5fa2",css:"#ff5fa2"}];

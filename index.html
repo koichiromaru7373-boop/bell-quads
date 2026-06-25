@@ -334,10 +334,10 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
       <span class="bt">BELL QUADS<small>POKER ROOM</small></span>
     </a>
     <nav class="nav-links">
-      <a href="#intro">はじめての方へ</a>
-      <a href="#price">料金</a>
       <a href="#schedule">スケジュール</a>
       <a href="#leaderboard">ランキング</a>
+      <a href="#intro">はじめての方へ</a>
+      <a href="#price">料金</a>
       <a href="#access">アクセス</a>
       <a class="nav-cta" href="app.html">マイページ</a>
     </nav>
@@ -367,6 +367,41 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
     </div>
   </div>
   <div class="wrap"><div class="suit-divider"><span>♠</span><span>♥</span><span>♦</span><span>♣</span></div></div>
+</section>
+
+<!-- スケジュール -->
+<section id="schedule">
+  <div class="wrap">
+    <span class="eyebrow" data-cms="sched_eyebrow">Schedule</span>
+    <h2 class="sec-title" data-cms="sched_title">スケジュール カレンダー</h2>
+    <p class="sec-sub" data-cms="sched_sub">予定のある日にはマークが付きます。日付をタップすると詳細が表示されます。</p>
+    <div class="cal-wrap">
+      <div class="calendar">
+        <div class="cal-head">
+          <button class="cal-nav" id="calPrev" aria-label="前の月">‹</button>
+          <div class="ttl" id="calTitle">読み込み中…</div>
+          <button class="cal-nav" id="calNext" aria-label="次の月">›</button>
+        </div>
+        <div class="cal-grid" id="calDow"></div>
+        <div class="cal-grid" id="calGrid" style="margin-top:5px"></div>
+        <div class="cal-legend"><span class="ld"></span><span data-cms="sched_legend">イベント開催日</span></div>
+      </div>
+      <div class="cal-detail" id="calDetail"><div class="ev-state">スケジュールを読み込んでいます…</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- MONTHLY LEADERBOARD -->
+<section id="leaderboard">
+  <div class="wrap">
+    <span class="eyebrow">Leaderboard</span>
+    <h2 class="sec-title">MONTHLY LEADERBOARD</h2>
+    <p class="sec-sub">月間のマイル獲得（BQRP）による上位プレイヤーです。年月を切り替えて過去の結果もご覧いただけます。</p>
+    <div class="lb-controls">
+      <select id="ixLbMonth" class="lb-month"></select>
+    </div>
+    <div class="lb-board" id="ixLbBoard"><div class="lb-empty">読み込み中…</div></div>
+  </div>
 </section>
 
 <!-- はじめての方へ -->
@@ -422,41 +457,6 @@ footer{border-top:1px solid var(--line);padding:2.6rem 0;color:var(--cream-dim);
       </div>
     </div>
     <p class="note" data-cms="price_note">※ 当店はチップを賞品（マイル・チケット）と交換するアミューズメント形式で運営しています。金銭の賭けは一切行いません。料金は税込表示です。</p>
-  </div>
-</section>
-
-<!-- スケジュール -->
-<section id="schedule">
-  <div class="wrap">
-    <span class="eyebrow" data-cms="sched_eyebrow">Schedule</span>
-    <h2 class="sec-title" data-cms="sched_title">スケジュール カレンダー</h2>
-    <p class="sec-sub" data-cms="sched_sub">予定のある日にはマークが付きます。日付をタップすると詳細が表示されます。</p>
-    <div class="cal-wrap">
-      <div class="calendar">
-        <div class="cal-head">
-          <button class="cal-nav" id="calPrev" aria-label="前の月">‹</button>
-          <div class="ttl" id="calTitle">読み込み中…</div>
-          <button class="cal-nav" id="calNext" aria-label="次の月">›</button>
-        </div>
-        <div class="cal-grid" id="calDow"></div>
-        <div class="cal-grid" id="calGrid" style="margin-top:5px"></div>
-        <div class="cal-legend"><span class="ld"></span><span data-cms="sched_legend">イベント開催日</span></div>
-      </div>
-      <div class="cal-detail" id="calDetail"><div class="ev-state">スケジュールを読み込んでいます…</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- MONTHLY LEADERBOARD -->
-<section id="leaderboard">
-  <div class="wrap">
-    <span class="eyebrow">Leaderboard</span>
-    <h2 class="sec-title">MONTHLY LEADERBOARD</h2>
-    <p class="sec-sub">月間のマイル獲得（BQRP）による上位プレイヤーです。年月を切り替えて過去の結果もご覧いただけます。</p>
-    <div class="lb-controls">
-      <select id="ixLbMonth" class="lb-month"></select>
-    </div>
-    <div class="lb-board" id="ixLbBoard"><div class="lb-empty">読み込み中…</div></div>
   </div>
 </section>
 

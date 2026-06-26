@@ -1,0 +1,389 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bell Quads SNS Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --felt-0:#0f261d;--felt-1:#14352a;--felt-2:#1b4332;--line:#2d5a47;
+    --brass:#c9a24b;--cream:#f2ede1;--sage:#8aa595;--card:#f7f3ea;--ink:#1c2620;--red:#b3392f;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;color:var(--cream);font-family:"Noto Sans JP",system-ui,sans-serif;line-height:1.6;
+    min-height:100vh;padding:28px 18px 64px;
+    background:radial-gradient(120% 80% at 50% -10%,#1c4b39 0%,var(--felt-1) 45%,var(--felt-0) 100%);
+  }
+  .wrap{max-width:980px;margin:0 auto;}
+  .brand{text-align:center;margin:8px 0 28px;}
+  .brand .suits{font-size:20px;letter-spacing:.5em;color:var(--brass);margin-bottom:6px;padding-left:.5em;}
+  .brand h1{font-family:"Shippori Mincho",serif;font-weight:800;font-size:clamp(28px,6vw,44px);margin:0;letter-spacing:.04em;}
+  .brand h1 b{color:var(--brass);}
+  .brand p{margin:6px 0 0;color:var(--sage);font-size:14px;letter-spacing:.08em;}
+
+  .panel{
+    background:linear-gradient(180deg,rgba(27,67,50,.55),rgba(15,38,29,.55));
+    border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:20px;
+  }
+  .panel h2{
+    font-family:"Shippori Mincho",serif;font-weight:600;font-size:15px;margin:0 0 16px;
+    color:var(--brass);letter-spacing:.1em;display:flex;align-items:center;gap:9px;
+  }
+  .step{
+    display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+    border:1px solid var(--brass);border-radius:50%;font-size:12px;color:var(--brass);font-family:"Noto Sans JP";
+  }
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 16px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.wide{grid-column:1 / -1;}
+  .field label{font-size:12px;color:var(--sage);letter-spacing:.04em;}
+  .field input,.field textarea,.field select{
+    background:rgba(7,20,15,.6);border:1px solid var(--line);border-radius:8px;color:var(--cream);
+    font-family:inherit;font-size:14px;padding:9px 11px;transition:border-color .15s;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--brass);}
+  .field textarea{resize:vertical;min-height:84px;}
+
+  .actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:4px 0 22px;}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;}
+  .btn-primary{background:var(--brass);color:var(--felt-0);font-weight:700;font-size:15px;padding:12px 22px;letter-spacing:.04em;transition:transform .08s,background .15s;}
+  .btn-primary:hover{background:#d8b25a;}
+  .btn-primary:active{transform:translateY(1px);}
+  .btn-ghost{background:transparent;color:var(--cream);border:1px solid var(--brass);font-weight:500;font-size:15px;padding:12px 20px;letter-spacing:.04em;display:inline-flex;align-items:center;gap:8px;}
+  .btn-ghost:hover{background:rgba(201,162,75,.12);}
+  .btn-ghost:disabled{opacity:.5;cursor:not-allowed;}
+  .status{font-size:13px;color:var(--sage);min-height:1.2em;}
+  .status.err{color:#e8917f;}
+  .spin{width:14px;height:14px;border:2px solid rgba(201,162,75,.35);border-top-color:var(--brass);border-radius:50%;display:inline-block;animation:sp .7s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  .results{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  .out-card{background:var(--card);color:var(--ink);border-radius:var(--radius);box-shadow:0 14px 30px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;position:relative;}
+  .out-card .corner{position:absolute;top:10px;right:12px;font-size:22px;line-height:1;opacity:.9;}
+  .out-card.spade .corner{color:var(--ink);}
+  .out-card.heart .corner{color:var(--red);}
+  .out-card.club .corner{color:var(--felt-2);}
+  .out-head{padding:14px 16px 10px;border-bottom:1px solid #e4ddcb;}
+  .out-head .plat{font-family:"Shippori Mincho",serif;font-weight:600;font-size:15px;letter-spacing:.06em;}
+  .out-head .sub{font-size:11px;color:#8a8472;margin-top:2px;}
+  .out-card textarea{border:none;background:transparent;color:var(--ink);font-family:inherit;font-size:13.5px;line-height:1.7;padding:14px 16px;resize:vertical;min-height:210px;width:100%;}
+  .out-card textarea:focus{outline:none;}
+  .out-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 14px;border-top:1px solid #e4ddcb;gap:10px;}
+  .count{font-size:11px;color:#8a8472;font-variant-numeric:tabular-nums;}
+  .count.over{color:var(--red);font-weight:700;}
+  .copy{background:var(--felt-2);color:var(--cream);font-size:13px;font-weight:500;padding:7px 16px;border-radius:8px;transition:background .15s;}
+  .copy:hover{background:var(--felt-1);}
+  .copy.done{background:var(--brass);color:var(--felt-0);}
+
+  .imgwrap{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;}
+  .imgctrl{display:flex;flex-direction:column;gap:14px;}
+  .imgctrl .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sage);}
+  .canvas-stage{display:flex;flex-direction:column;align-items:center;gap:12px;}
+  #card{width:100%;max-width:400px;height:auto;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.45);background:#0d2419;}
+  .img-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .mini{background:var(--felt-2);color:var(--cream);font-size:13px;padding:9px 16px;border-radius:8px;}
+  .mini:hover{background:var(--felt-1);}
+  .mini.done{background:var(--brass);color:var(--felt-0);}
+
+  .hint{margin-top:26px;font-size:12px;color:var(--sage);border-top:1px solid var(--line);padding-top:16px;line-height:1.7;}
+  .hint code{color:var(--brass);background:rgba(7,20,15,.5);padding:1px 6px;border-radius:4px;}
+
+  @media(max-width:760px){.grid{grid-template-columns:1fr;}.results{grid-template-columns:1fr;}.imgwrap{grid-template-columns:1fr;}}
+</style>
+
+<div class="wrap">
+  <header class="brand">
+    <div class="suits">♠&nbsp;♥&nbsp;♦&nbsp;♣</div>
+    <h1>BELL <b>QUADS</b></h1>
+    <p>本日のイベント告知ジェネレーター</p>
+  </header>
+
+  <section class="panel">
+    <h2><span class="step">i</span>イベント情報</h2>
+    <div class="grid">
+      <div class="field"><label>タイトル（title）</label><input id="f-title" value="ナイトリーホールデム" /></div>
+      <div class="field"><label>開催日（date）</label><input id="f-date" /></div>
+      <div class="field wide"><label>詳細（description ＝ 時間・Buy-in・賞品など全部ここ）</label>
+        <textarea id="f-desc">19:00開始（受付18:30〜）／Buy-in 2,000pt／20:00までリエントリー可／15,000スタート 20分レベル／上位入賞者にプライズ進呈。初心者歓迎、スタッフがサポートします。</textarea></div>
+      <div class="field"><label>リンク</label><input id="f-url" value="https://bell-quads.example/events" /></div>
+      <div class="field"><label>ハッシュタグ</label><input id="f-tags" value="#アミューズメントポーカー #ポーカー #札幌ポーカー #BellQuads" /></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="step">1</span>告知文</h2>
+    <div class="actions">
+      <button class="btn-primary" id="gen">テンプレ生成</button>
+      <button class="btn-ghost" id="ai">✦ AIで整える</button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="results">
+      <article class="out-card spade"><span class="corner">♠</span>
+        <div class="out-head"><div class="plat">X (Twitter)</div><div class="sub">簡潔・タグ少なめ</div></div>
+        <textarea data-out="x" oninput="recount('x')"></textarea>
+        <div class="out-foot"><span class="count" id="count-x"></span><button class="copy" onclick="copyOut('x',this)">コピー</button></div>
+      </article>
+      <article class="out-card heart"><span class="corner">♥</span>
+        <div class="out-head"><div class="plat">Instagram</div><div class="sub">絵文字・タグまとめ</div></div>
+        <textarea data-out="instagram" oninput="recount('instagram')"></textarea>
+        <div class="out-foot"><span class="count" id="count-instagram"></span><button class="copy" onclick="copyOut('instagram',this)">コピー</button></div>
+      </article>
+      <article class="out-card club"><span class="corner">♣</span>
+        <div class="out-head"><div class="plat">LINE公式</div><div class="sub">配信・呼びかけ調</div></div>
+        <textarea data-out="line" oninput="recount('line')"></textarea>
+        <div class="out-foot"><span class="count" id="count-line"></span><button class="copy" onclick="copyOut('line',this)">コピー</button></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="step">2</span>告知画像</h2>
+    <div class="imgwrap">
+      <div class="imgctrl">
+        <div class="field"><label>見出し（これだけ。詳細は不要）</label><input id="im-head" value="30%保証トーナメント" /></div>
+        <div class="field"><label>形式</label>
+          <select id="im-fmt">
+            <option value="square">Instagram 正方形 1080×1080</option>
+            <option value="wide">X ヨコ 1200×675</option>
+            <option value="story">ストーリー 1080×1350</option>
+          </select>
+        </div>
+        <label class="toggle"><input type="checkbox" id="im-ai" /> AIで言い回し候補も作る（任意）</label>
+        <div class="row">
+          <button class="btn-primary" id="im-shuffle">ニュアンスを変える ⟳</button>
+          <button class="btn-ghost" id="im-make">この内容で更新</button>
+        </div>
+        <span class="status" id="im-status"></span>
+        <p style="font-size:11px;color:var(--sage);margin:0;line-height:1.7;">
+          押すたびに配色・構図・あしらいが変わります。見出しの文言は固定、印象だけ変化。詳しい情報は本文（上の告知文）に書く想定です。
+        </p>
+      </div>
+      <div class="canvas-stage">
+        <canvas id="card" width="1080" height="1080"></canvas>
+        <div class="img-actions">
+          <button class="mini" id="im-dl">PNGダウンロード</button>
+          <button class="mini" id="im-copy" onclick="copyImage(this)">画像コピー</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="hint">
+    本番では <code>events</code>（title / date / description）を自動取得して上欄へ反映。画像生成は完全クライアント側で動くため<b>サーバ不要</b>。AI言い回しを使う場合のみ Edge Function を経由します。
+  </p>
+</div>
+
+<script>
+  // ===== shared =====
+  function todayJP(){const d=new Date();const w=['日','月','火','水','木','金','土'][d.getDay()];return `${d.getMonth()+1}/${d.getDate()}(${w})`;}
+  document.getElementById('f-date').value = todayJP();
+  function ev(){const g=id=>document.getElementById(id).value.trim();return{name:g('f-title'),date:g('f-date'),note:g('f-desc'),url:g('f-url'),tags:g('f-tags')};}
+
+  // ===== 1) text =====
+  function tplX(e){let s=`🔔本日 ${e.date}「${e.name}」\n\n${e.note}\n\n`;if(e.url)s+=`${e.url}\n`;s+=e.tags;return s.trim();}
+  function tplIG(e){return `🔔 本日のトーナメント 🔔\n${e.name}\n\n🗓 ${e.date}\n\n${e.note}\n\nご参加お待ちしております🃏\n${e.url}\n\n———\n${e.tags}`.trim();}
+  function tplLINE(e){return `【本日開催】${e.name} 🔔\n\n本日 ${e.date} は「${e.name}」を開催します！\n\n${e.note}\n\n皆さまのご来店お待ちしております🃏\n\n▼詳細・ご予約\n${e.url}`.trim();}
+  function setOut(k,t){document.querySelector(`textarea[data-out="${k}"]`).value=t;recount(k);}
+  function generate(){const e=ev();setOut('x',tplX(e));setOut('instagram',tplIG(e));setOut('line',tplLINE(e));}
+
+  function xWeight(s){let w=0;for(const ch of s)w+=/[\u0000-\u00FF]/.test(ch)?1:2;return w;}
+  function recount(k){
+    const t=document.querySelector(`textarea[data-out="${k}"]`).value,el=document.getElementById('count-'+k);
+    if(k==='x'){const w=xWeight(t);el.textContent=`約${w} / 280`;el.classList.toggle('over',w>280);}
+    else if(k==='instagram'){const tg=(t.match(/#[^\s#]+/g)||[]).length;el.textContent=`${t.length}字 / タグ${tg}（上限30）`;el.classList.toggle('over',t.length>2200||tg>30);}
+    else{el.textContent=`${t.length}字`;el.classList.remove('over');}
+  }
+  async function copyOut(k,btn){
+    const t=document.querySelector(`textarea[data-out="${k}"]`).value;
+    try{await navigator.clipboard.writeText(t);}catch(_){const ta=document.querySelector(`textarea[data-out="${k}"]`);ta.select();document.execCommand('copy');}
+    btn.textContent='コピー済';btn.classList.add('done');setTimeout(()=>{btn.textContent='コピー';btn.classList.remove('done');},1400);
+  }
+
+  // ----- AI (claude.ai runtime). Swap callClaude body for an Edge Function call in production. -----
+  async function callClaude(system,userMsg){
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system,messages:[{role:"user",content:userMsg}]})
+    });
+    if(!res.ok)throw new Error("API "+res.status);
+    const data=await res.json();
+    return (data.content||[]).map(b=>b.text||"").join("").trim();
+  }
+  async function aiRefine(){
+    const btn=document.getElementById('ai'),st=document.getElementById('status');
+    generate();const e=ev();
+    const drafts={x:document.querySelector('textarea[data-out="x"]').value,instagram:document.querySelector('textarea[data-out="instagram"]').value,line:document.querySelector('textarea[data-out="line"]').value};
+    const sys=`あなたはアミューズメントポーカー店「Bell Quads」のSNS担当です。
+イベント情報とテンプレ下書きから X / Instagram / LINE公式 の告知文を作成。
+- 詳細(時間・Buy-in・リエントリー・賞品等)は description 自由文に含まれる。そこから正確に読み取り反映し、記載のない項目は創作しない。
+- X: 全角140字程度・タグ2〜3・末尾URL / Instagram: 改行多め絵文字あり・タグ末尾10〜20 / LINE公式: 来店促す配信調・絵文字控えめ・タグ不要
+- 賭博想起語は避け「プライズ・賞品」等で表現。日時料金は改変しない。
+- 出力は {"x":"...","instagram":"...","line":"..."} のJSONのみ。コードフェンス禁止。`;
+    btn.disabled=true;st.className='status';st.innerHTML='<span class="spin"></span> AIが整形中…';
+    try{
+      const raw=await callClaude(sys,`イベント情報:\n${JSON.stringify(e)}\n\nテンプレ下書き:\n${JSON.stringify(drafts)}`);
+      const r=JSON.parse(raw.replace(/```json|```/g,"").trim());
+      if(r.x)setOut('x',r.x);if(r.instagram)setOut('instagram',r.instagram);if(r.line)setOut('line',r.line);
+      st.textContent='✓ AI整形が完了しました';
+    }catch(err){st.className='status err';st.textContent='AI整形に失敗（テンプレ表示中）: '+err.message;}
+    finally{btn.disabled=false;}
+  }
+  document.getElementById('gen').addEventListener('click',generate);
+  document.getElementById('ai').addEventListener('click',aiRefine);
+
+  // ===== 2) image engine =====
+  const SIZES={square:[1080,1080],wide:[1200,675],story:[1080,1350]};
+  const THEMES=[
+    {name:'felt',    bg:['#1a4233','#0c2117'], accent:'#c9a24b', sub:'#a8c1b3', pip:'rgba(201,162,75,.10)', headTint:'#f4efe2'},
+    {name:'midnight',bg:['#14241c','#070d0a'], accent:'#d7b463', sub:'#92a99a', pip:'rgba(215,180,99,.08)', headTint:'#f5efe2'},
+    {name:'crimson', bg:['#1c3b2d','#0c2017'], accent:'#c9a24b', sub:'#b08c84', pip:'rgba(198,66,49,.10)', headTint:'#eccf6a'},
+    {name:'royal',   bg:['#123640','#08191f'], accent:'#dcc079', sub:'#85a3ab', pip:'rgba(220,192,121,.09)', headTint:'#f3eee0'},
+  ];
+  const LAYOUTS=['center','band','corner'];
+  let variant=0, headPhrases=null;
+  const ctx=document.getElementById('card').getContext('2d');
+
+  async function ensureFonts(){
+    try{await Promise.all([
+      document.fonts.load('900 80px "Noto Sans JP"'),
+      document.fonts.load('800 60px "Shippori Mincho"'),
+      document.fonts.load('700 40px "Noto Sans JP"'),
+    ]);await document.fonts.ready;}catch(_){}
+  }
+  function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+  function suitField(c,W,H,color){
+    c.save();c.fillStyle=color;c.font='40px "Noto Sans JP"';c.textAlign='center';c.textBaseline='middle';
+    const sy=['♠','♥','♦','♣'];let i=0;
+    for(let y=70;y<H;y+=92){for(let x=70;x<W;x+=92){c.fillText(sy[i%4],x,y);i++;}i++;}
+    c.restore();
+  }
+  function layoutHead(c,text,maxW,startPx){
+    let size=startPx;
+    function lines(s,fs){
+      c.font=`900 ${fs}px "Noto Sans JP"`;
+      if(c.measureText(s).width<=maxW)return [s];
+      const mid=Math.ceil(s.length/2);
+      for(let off=0;off<=mid;off++){
+        for(const p of [mid-off,mid+off]){
+          if(p<=0||p>=s.length)continue;
+          const a=s.slice(0,p),b=s.slice(p);
+          if(c.measureText(a).width<=maxW&&c.measureText(b).width<=maxW)return [a,b];
+        }
+      }
+      return [s.slice(0,mid),s.slice(mid)];
+    }
+    let ls=lines(text,size);
+    while(size>40){
+      c.font=`900 ${size}px "Noto Sans JP"`;
+      const widest=Math.max(...ls.map(l=>c.measureText(l).width));
+      if(widest<=maxW)break;
+      size-=4;ls=lines(text,size);
+    }
+    return {size,lines:ls};
+  }
+  function drawHead(c,text,cx,cy,maxW,startPx,color,align,glow){
+    const {size,lines}=layoutHead(c,text,maxW,startPx);
+    c.font=`900 ${size}px "Noto Sans JP"`;c.textAlign=align;c.textBaseline='middle';
+    const lh=size*1.12,total=(lines.length-1)*lh;let y=cy-total/2;
+    for(const ln of lines){
+      if(glow){c.save();c.shadowColor='rgba(201,162,75,.55)';c.shadowBlur=size*0.5;c.fillStyle=color;c.fillText(ln,cx,y);c.restore();}
+      c.fillStyle=color;c.fillText(ln,cx,y);y+=lh;
+    }
+  }
+  function brandRow(c,W,y,theme,align){
+    c.save();c.textBaseline='middle';
+    const cx = align==='left'?86: W/2;
+    c.textAlign = align==='left'?'left':'center';
+    c.fillStyle=theme.accent;c.font='800 30px "Shippori Mincho"';
+    c.fillText('BELL QUADS', cx, y);
+    c.font='26px "Noto Sans JP"';c.fillStyle=theme.sub;
+    c.fillText('♠  ♥  ♦  ♣', cx, y+40);
+    c.restore();
+  }
+
+  function render(){
+    const fmt=document.getElementById('im-fmt').value,[W,H]=SIZES[fmt];
+    const cv=document.getElementById('card');cv.width=W;cv.height=H;
+    const theme=THEMES[variant%THEMES.length];
+    const layout=LAYOUTS[Math.floor(variant/THEMES.length)%LAYOUTS.length];
+    const e=ev();
+    const headBase=document.getElementById('im-head').value.trim()||e.name;
+    const head = headPhrases&&headPhrases.length ? headPhrases[variant%headPhrases.length] : headBase;
+
+    const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,theme.bg[0]);g.addColorStop(1,theme.bg[1]);
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    suitField(ctx,W,H,theme.pip);
+    ctx.strokeStyle=theme.accent;ctx.lineWidth=4;rr(ctx,40,40,W-80,H-80,26);ctx.stroke();
+    ctx.globalAlpha=.5;ctx.lineWidth=1.5;rr(ctx,54,54,W-108,H-108,20);ctx.stroke();ctx.globalAlpha=1;
+
+    const eyebrow=`${e.date}　/　${e.name}`;
+
+    if(layout==='center'){
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=theme.sub;ctx.font='500 30px "Noto Sans JP"';ctx.fillText(eyebrow,W/2,H*0.22);
+      ctx.strokeStyle=theme.accent;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(W/2-60,H*0.27);ctx.lineTo(W/2+60,H*0.27);ctx.stroke();
+      drawHead(ctx,head,W/2,H*0.48,W-200,Math.min(W,H)*0.16,theme.headTint,'center',true);
+      brandRow(ctx,W,H*0.82,theme,'center');
+    }else if(layout==='band'){
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=theme.sub;ctx.font='500 30px "Noto Sans JP"';ctx.fillText(eyebrow,W/2,H*0.20);
+      const bh=Math.min(W,H)*0.30, by=H*0.5-bh/2;
+      ctx.fillStyle=theme.accent;rr(ctx,40,by,W-80,bh,18);ctx.fill();
+      drawHead(ctx,head,W/2,by+bh/2,W-180,bh*0.62,theme.bg[1],'center',false);
+      brandRow(ctx,W,H*0.84,theme,'center');
+    }else{
+      ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillStyle=theme.accent;ctx.font='600 28px "Noto Sans JP"';ctx.fillText('TONIGHT',86,H*0.20);
+      ctx.fillStyle=theme.sub;ctx.font='500 28px "Noto Sans JP"';ctx.fillText(eyebrow,86,H*0.26);
+      drawHead(ctx,head,86,H*0.50,W-172,Math.min(W,H)*0.15,theme.headTint,'left',true);
+      brandRow(ctx,W,H*0.84,theme,'left');
+    }
+  }
+  async function renderSafe(){await ensureFonts();render();}
+
+  async function shuffle(){
+    if(document.getElementById('im-ai').checked && !headPhrases){await fetchPhrases();}
+    const span=THEMES.length*LAYOUTS.length*Math.max(1,(headPhrases?headPhrases.length:1));
+    variant=(variant+1)%span;
+    await renderSafe();
+  }
+  async function fetchPhrases(){
+    const st=document.getElementById('im-status');
+    const base=document.getElementById('im-head').value.trim();
+    st.className='status';st.innerHTML='<span class="spin"></span> 言い回し候補を生成中…';
+    try{
+      const sys=`ポーカー店の告知バナー用の短い見出しを作る。意味は保ち言い回し・テンションだけ変えた候補を6個。各14文字以内。賭博想起語は避ける。出力はJSON配列のみ（例 ["A","B"]）。コードフェンス禁止。`;
+      const raw=await callClaude(sys,`元の見出し: ${base}`);
+      const arr=JSON.parse(raw.replace(/```json|```/g,"").trim());
+      headPhrases=[base,...arr.filter(x=>typeof x==='string')].slice(0,7);
+      st.textContent=`✓ ${headPhrases.length}パターンを用意`;
+    }catch(err){headPhrases=null;st.className='status err';st.textContent='候補生成に失敗（元の見出しを使用）: '+err.message;}
+  }
+
+  function download(){
+    const cv=document.getElementById('card');const a=document.createElement('a');
+    a.download=`bellquads_${document.getElementById('im-fmt').value}_${Date.now()}.png`;
+    a.href=cv.toDataURL('image/png');a.click();
+  }
+  async function copyImage(btn){
+    const cv=document.getElementById('card');
+    try{
+      const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+      btn.textContent='コピー済';btn.classList.add('done');setTimeout(()=>{btn.textContent='画像コピー';btn.classList.remove('done');},1400);
+    }catch(err){download();}
+  }
+
+  document.getElementById('im-shuffle').addEventListener('click',shuffle);
+  document.getElementById('im-make').addEventListener('click',()=>{headPhrases=null;renderSafe();});
+  document.getElementById('im-fmt').addEventListener('change',renderSafe);
+  document.getElementById('im-head').addEventListener('input',()=>{headPhrases=null;});
+  document.getElementById('im-dl').addEventListener('click',download);
+
+  // init
+  generate();
+  renderSafe();
+</script>

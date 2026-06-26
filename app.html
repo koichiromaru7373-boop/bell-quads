@@ -1802,8 +1802,10 @@ async function openCharge(){
   // チケット参加分は pool_value を満額としてまとめて1項目に（案A）
   const ticketPool=ticketOrds.reduce((s,o)=>s+(o.pool_value||0),0);
   if(ticketOrds.length){chItems.push({name:"🎟 チケットエントリー",total:ticketPool,on:true,isTicket:true});}
-  const useDefault=entryNames.size>0;
-  chItems.forEach(it=>{if(it.isTicket){it.on=true;return;}it.on=useDefault?entryNames.has(it.name):(it.name.indexOf("エントリー")>=0||it.name.indexOf("アドオン")>=0);});
+  // エントリー自動判定：is_entryフラグ ＋ 名称（エントリー/アドオン）の論理和。
+  // → 料金テンプレ(tournament_fee_items)由来の現金エントリーも自動ONになる。
+  const isEntryName=n=>(n||"").indexOf("エントリー")>=0||(n||"").indexOf("アドオン")>=0;
+  chItems.forEach(it=>{if(it.isTicket){it.on=true;return;}it.on=entryNames.has(it.name)||isEntryName(it.name);});
   const tabUser={};tabs.forEach(t=>tabUser[t.id]=t.user_id);
   const entrantSet=new Set();
   normalOrds.forEach(o=>{const it=chItems.find(x=>x.name===o.name);if(it&&it.on&&tabUser[o.tab_id])entrantSet.add(tabUser[o.tab_id]);});
@@ -1912,7 +1914,7 @@ async function doGrant(m){
 }
 
 /* ===== 精算 ===== */
-let setTotalV=0,setValidV=0,setMaxMilesV=0,setVipV=false;
+let setTotalV=0,setValidV=0,setMaxMilesV=0,setVipV=false,setAvailV=0;
 document.getElementById("btnSettle").addEventListener("click",openSettle);
 async function openSettle(){
   if(!requireStaff())return;
@@ -1928,11 +1930,15 @@ async function openSettle(){
   // 当日付与マイル（リング分）を取得して除外
   let todayAdded=0;
   try{
-    const {data}=await db.from("history").select("amount").eq("user_id",curTab.user_id).eq("type","ring").gte("created_at",new Date().toISOString().split('T')[0]);
+    const _n=new Date();const _todayStart=new Date(_n.getFullYear(),_n.getMonth(),_n.getDate()).toISOString();
+    const {data}=await db.from("history").select("amount").eq("user_id",curTab.user_id).eq("type","ring").gte("created_at",_todayStart);
     if(data){todayAdded=data.reduce((s,h)=>s+(h.amount||0),0);}
   }catch(e){console.error("当日マイル取得エラー",e);}
   
   const availableMiles = Math.max(0, valid - todayAdded);
+  setAvailV = availableMiles; // 入力クランプ・確定検証でも当日付与分を除外
+  // 表示も使用可能額に合わせる（当日付与分は翌日から）
+  document.getElementById("setValid").textContent=yen(availableMiles)+(todayAdded>0?"（本日付与 "+yen(todayAdded)+"pt は翌日から）":"");
   
   // VIP（プラチナパス）判定：A=前月ランキング / B=管理者手動 のいずれかで100%
   setVipV=false; let vipInfo=null;
@@ -1974,7 +1980,7 @@ function renderSettleGrantPending(){
 const setMilesEl=document.getElementById("setMiles"),setCashEl=document.getElementById("setCash");
 setMilesEl.addEventListener("input",()=>{
   let m=parseInt(setMilesEl.value,10)||0;
-  m=Math.max(0,Math.min(m,setValidV,setMaxMilesV)); // 80%上限を適用
+  m=Math.max(0,Math.min(m,setAvailV,setMaxMilesV)); // 当日付与分を除外＋上限適用
   setMilesEl.value=m;
   setCashEl.value=Math.max(0,setTotalV-m);
 });
@@ -1983,7 +1989,7 @@ setCashEl.addEventListener("input",()=>{
   c=Math.max(0,c); // 負数を許可しない
   setCashEl.value=c;
   // マイルは自動計算
-  let m=Math.min(setValidV,setMaxMilesV,Math.max(0,setTotalV-c));
+  let m=Math.min(setAvailV,setMaxMilesV,Math.max(0,setTotalV-c));
   setMilesEl.value=m;
 });
 document.getElementById("btnSetBack").addEventListener("click",()=>showActiveView("tab"));
@@ -1997,6 +2003,10 @@ async function confirmSettle(){
   const maxMiles = setVipV ? total : Math.floor(total * 0.8); // VIPは100%、通常は80%
 
   // バリデーション
+  if(useM > setAvailV){
+    setMsg(document.getElementById("setMsg"),`本日付与のマイルは翌日から利用可能です（利用可能 ${yen(setAvailV)}pt）`,"err");
+    return;
+  }
   if(useM > maxMiles){
     setMsg(document.getElementById("setMsg"),`使用マイルは${setVipV?"総会計の100%":"総会計の80%"}（${yen(maxMiles)}pt）までです`,"err");
     return;

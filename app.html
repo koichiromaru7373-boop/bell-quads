@@ -1751,7 +1751,7 @@ async function loadOrders(){
 async function addOrder(menuId){
   if(!requireStaff())return;
   const m=menuCache.find(x=>String(x.id)===String(menuId));if(!m)return;
-  try{await db.from("tab_orders").insert({tab_id:curTab.id,name:m.name,price:m.price,qty:1,staff_name:currentStaff});await loadOrders();}
+  try{await db.from("tab_orders").insert({tab_id:curTab.id,name:m.name,price:m.price,qty:1,staff_name:currentStaff,pool_value:(m.is_entry?m.price:0)});await loadOrders();}
   catch(e){console.error(e);setMsg(document.getElementById("tabMsg"),"追加に失敗しました","err");}
 }
 window.addOrder=addOrder;
@@ -1801,9 +1801,17 @@ async function openCharge(){
   }
   let entryNames=new Set();
   try{const r=await db.from("menu_items").select("name,is_entry");(r.data||[]).forEach(m=>{if(m.is_entry)entryNames.add(m.name);});}catch(e){console.error(e);}
-  const start=new Date();start.setHours(0,0,0,0);
-  let tabs=[],ords=[];
-  try{const rt=await db.from("tabs").select("id,user_id").gte("opened_at",start.toISOString());tabs=rt.data||[];const ids=tabs.map(t=>t.id);if(ids.length){const ro=await db.from("tab_orders").select("name,price,qty,tab_id,pool_value").in("tab_id",ids);ords=ro.data||[];}}catch(e){console.error(e);}
+  // 現在の伝票（卓ビューで取得済み・確実）を基準にし、本日の他卓を加算（取りこぼし防止）
+  let ords=(curOrders||[]).map(o=>({name:o.name,price:o.price,qty:o.qty,tab_id:curTab.id,pool_value:o.pool_value}));
+  const tabUser={};tabUser[curTab.id]=curTab.user_id;
+  try{
+    const start=new Date();start.setHours(0,0,0,0);
+    const rt=await db.from("tabs").select("id,user_id").gte("opened_at",start.toISOString());
+    const others=(rt.data||[]).filter(t=>String(t.id)!==String(curTab.id));
+    others.forEach(t=>tabUser[t.id]=t.user_id);
+    const ids=others.map(t=>t.id);
+    if(ids.length){const ro=await db.from("tab_orders").select("name,price,qty,tab_id,pool_value").in("tab_id",ids);(ro.data||[]).forEach(o=>ords.push(o));}
+  }catch(e){console.error(e);}
   const isTicketName=n=>n&&n.indexOf("チケットエントリー")>=0;
   const normalOrds=ords.filter(o=>!isTicketName(o.name));
   const ticketOrds=ords.filter(o=>isTicketName(o.name));
@@ -1817,7 +1825,8 @@ async function openCharge(){
   // 互換のため is_entryフラグ／名称（エントリー・アドオン）も論理和で拾う。
   const isEntryName=n=>(n||"").indexOf("エントリー")>=0||(n||"").indexOf("アドオン")>=0;
   chItems.forEach(it=>{if(it.isTicket){it.on=true;return;}it.on=(it.pool>0)||entryNames.has(it.name)||isEntryName(it.name);});
-  const tabUser={};tabs.forEach(t=>tabUser[t.id]=t.user_id);
+  // フォールバック：エントリーが1つも検出できない場合、有料項目を既定ONにして総額0のまま固まるのを防ぐ（不要分はタップでOFF）
+  if(!chItems.some(it=>it.on)){chItems.forEach(it=>{if(!it.isTicket&&(it.total||0)>0)it.on=true;});}
   const entrantSet=new Set();
   normalOrds.forEach(o=>{const it=chItems.find(x=>x.name===o.name);if(it&&it.on&&tabUser[o.tab_id])entrantSet.add(tabUser[o.tab_id]);});
   // チケット参加者も人数に含める（チケット項目がONのとき）

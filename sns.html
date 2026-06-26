@@ -82,7 +82,13 @@
   .imgctrl .row{display:flex;gap:10px;flex-wrap:wrap;}
   .toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sage);}
   .canvas-stage{display:flex;flex-direction:column;align-items:center;gap:12px;}
-  #card{width:100%;max-width:400px;height:auto;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.45);background:#104023;}
+  #card{width:100%;max-width:400px;height:auto;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.45);
+    background:
+      linear-gradient(45deg,#0c2417 25%,transparent 0),
+      linear-gradient(-45deg,#0c2417 25%,transparent 0),
+      linear-gradient(45deg,transparent 75%,#0c2417 0),
+      linear-gradient(-45deg,transparent 75%,#0c2417 0) #143d27;
+    background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0;}
   .img-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
   .mini{background:var(--felt-2);color:var(--cream);font-size:13px;padding:9px 16px;border-radius:8px;}
   .mini:hover{background:var(--felt-1);}
@@ -109,7 +115,7 @@
       <div class="field wide" id="ev-pickwrap" style="display:none;"><label>この日のイベント（複数あり）</label><select id="ev-pick"></select></div>
       <div class="field wide"><label>詳細（description ＝ 時間・Buy-in・賞品など全部ここ）</label>
         <textarea id="f-desc">19:00開始（受付18:30〜）／Buy-in 2,000円／20:00までリエントリー可／上位入賞者にプライズ進呈。初心者歓迎、スタッフがサポートします。</textarea></div>
-      <div class="field"><label>リンク</label><input id="f-url" value="https://bell-quads.example/events" /></div>
+      <div class="field"><label>リンク</label><input id="f-url" value="https://bell-quads-oyed.vercel.app/index.html" /></div>
       <div class="field"><label>ハッシュタグ</label><input id="f-tags" value="#アミューズメントポーカー #ポーカー #釧路ポーカー #ボードゲーム #暇つぶし #BellQuads" /></div>
     </div>
     <div style="margin-top:12px;"><span class="status" id="ev-status"></span></div>
@@ -146,6 +152,7 @@
     <div class="imgwrap">
       <div class="imgctrl">
         <div class="field"><label>見出し（これだけ。詳細は不要）</label><input id="im-head" value="30%保証トーナメント" /></div>
+        <div class="field"><label>見出し 2段目（任意・空欄なら1段）</label><input id="im-head2" value="" placeholder="例：本日開催！" /></div>
         <div class="grid">
           <div class="field"><label>日付</label><input id="im-date" /></div>
           <div class="field"><label>START</label><input id="im-start" value="19:00" /></div>
@@ -159,7 +166,13 @@
             <option value="story">ストーリー 1080×1350</option>
           </select>
         </div>
+        <label class="toggle"><input type="checkbox" id="im-headcustom" /> タイトル色を指定（段ごと）</label>
+        <div class="row" style="align-items:center;">
+          <label class="toggle" style="gap:6px;">1段目<input type="color" id="im-headcolor" value="#f6de15" style="width:44px;height:26px;padding:2px;border-radius:6px;"></label>
+          <label class="toggle" style="gap:6px;">2段目<input type="color" id="im-headcolor2" value="#ffffff" style="width:44px;height:26px;padding:2px;border-radius:6px;"></label>
+        </div>
         <label class="toggle"><input type="checkbox" id="im-logo" checked /> ロゴ透かしを背景に入れる</label>
+        <label class="toggle"><input type="checkbox" id="im-bg" /> 背景（緑）を塗る（OFFで透過）</label>
         <label class="toggle"><input type="checkbox" id="im-ai" /> AIで言い回し候補も作る（任意）</label>
         <div class="row">
           <button class="btn-primary" id="im-shuffle">ニュアンスを変える ⟳</button>
@@ -204,8 +217,8 @@
 
   // ===== Supabase（イベント自動取得）=====
   // ▼ app.html の createClient と同じ値を貼ってください（anonキーは公開用なのでOK）
- const SUPABASE_URL      = "https://dnnctulubrawypwgwgdo.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
+  const SUPABASE_URL      = "PASTE_SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "PASTE_SUPABASE_ANON_KEY";
   const SB_READY = SUPABASE_URL && !SUPABASE_URL.startsWith("PASTE_") && window.supabase;
   const sb = SB_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
@@ -329,8 +342,10 @@ const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
     c.restore();
   }
   function layoutHead(c,text,maxW,startPx){
+    const explicit=text.includes('\n');
     let size=startPx;
     function lines(s,fs){
+      if(explicit) return s.split('\n');
       c.font=`900 ${fs}px "Noto Sans JP"`;
       if(c.measureText(s).width<=maxW)return [s];
       const mid=Math.ceil(s.length/2);
@@ -352,13 +367,15 @@ const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
     }
     return {size,lines:ls};
   }
+  function hexToRgba(hex,a){if(typeof hex!=='string'||hex[0]!=='#')return `rgba(246,222,21,${a})`;const n=parseInt(hex.slice(1),16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
   function drawHead(c,text,cx,cy,maxW,startPx,color,align,glow){
     const {size,lines}=layoutHead(c,text,maxW,startPx);
     c.font=`900 ${size}px "Noto Sans JP"`;c.textAlign=align;c.textBaseline='middle';
     const lh=size*1.12,total=(lines.length-1)*lh;let y=cy-total/2;
-    for(const ln of lines){
-      if(glow){c.save();c.shadowColor='rgba(201,162,75,.55)';c.shadowBlur=size*0.5;c.fillStyle=color;c.fillText(ln,cx,y);c.restore();}
-      c.fillStyle=color;c.fillText(ln,cx,y);y+=lh;
+    for(let i=0;i<lines.length;i++){
+      const col=Array.isArray(color)?(color[i]||color[0]):color;
+      if(glow){c.save();c.shadowColor=hexToRgba(col,0.5);c.shadowBlur=size*0.5;c.fillStyle=col;c.fillText(lines[i],cx,y);c.restore();}
+      c.fillStyle=col;c.fillText(lines[i],cx,y);y+=lh;
     }
   }
   function brandRow(c,W,y,theme,align){
@@ -427,12 +444,21 @@ const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
     const e=ev();
     const headBase=document.getElementById('im-head').value.trim()||e.name;
     const head = headPhrases&&headPhrases.length ? headPhrases[variant%headPhrases.length] : headBase;
+    const _custom=document.getElementById('im-headcustom').checked, _cc=document.getElementById('im-headcolor').value;
+    const head2=document.getElementById('im-head2').value.trim();
+    const headText = head2 ? head+'\n'+head2 : head;
+    const _c1=_custom?_cc:theme.headTint;
+    const _c2=_custom?document.getElementById('im-headcolor2').value:theme.headTint;
+    const headColor = head2?[_c1,_c2]:_c1;
+    const bandColor = _custom ? (head2?[_c1,_c2]:_c1) : theme.bg[1];
     const info=fmtInfo(), rv=retVal();
 
-    const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,theme.bg[0]);g.addColorStop(1,theme.bg[1]);
-    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.clearRect(0,0,W,H);
+    if(document.getElementById('im-bg').checked){
+      const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,theme.bg[0]);g.addColorStop(1,theme.bg[1]);
+      ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    }
     drawLogo(ctx,W,H);
-    suitField(ctx,W,H,theme.pip);
     if(rv>=50) drawChips(ctx,W,H,layout);
     ctx.strokeStyle=theme.accent;ctx.lineWidth=4;rr(ctx,40,40,W-80,H-80,26);ctx.stroke();
     ctx.globalAlpha=.5;ctx.lineWidth=1.5;rr(ctx,54,54,W-108,H-108,20);ctx.stroke();ctx.globalAlpha=1;
@@ -443,7 +469,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillStyle=theme.sub;ctx.font='500 32px "Noto Sans JP"';ctx.fillText(eyebrow,W/2,H*0.205);
       ctx.strokeStyle=theme.accent;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(W/2-60,H*0.255);ctx.lineTo(W/2+60,H*0.255);ctx.stroke();
-      drawHead(ctx,head,W/2,H*0.43,W-200,Math.min(W,H)*0.155,theme.headTint,'center',true);
+      drawHead(ctx,headText,W/2,H*0.43,W-200,Math.min(W,H)*0.155,headColor,'center',true);
       drawReturnBadge(ctx,rv,W/2,H*0.585,'center',theme);
       drawInfoLine(ctx,info,W/2,H*0.70,'center',theme);
       brandRow(ctx,W,H*0.83,theme,'center');
@@ -452,7 +478,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
       ctx.fillStyle=theme.sub;ctx.font='500 32px "Noto Sans JP"';ctx.fillText(eyebrow,W/2,H*0.165);
       const bh=Math.min(W,H)*0.275, by=H*0.42-bh/2;
       ctx.fillStyle=theme.accent;rr(ctx,40,by,W-80,bh,18);ctx.fill();
-      drawHead(ctx,head,W/2,by+bh/2,W-180,bh*0.6,theme.bg[1],'center',false);
+      drawHead(ctx,headText,W/2,by+bh/2,W-180,bh*0.6,bandColor,'center',false);
       drawReturnBadge(ctx,rv,W/2,H*0.63,'center',theme);
       drawInfoLine(ctx,info,W/2,H*0.735,'center',theme);
       brandRow(ctx,W,H*0.85,theme,'center');
@@ -460,7 +486,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
       ctx.textAlign='left';ctx.textBaseline='middle';
       ctx.fillStyle=theme.accent;ctx.font='600 28px "Noto Sans JP"';ctx.fillText('TONIGHT',86,H*0.175);
       ctx.fillStyle=theme.sub;ctx.font='500 30px "Noto Sans JP"';ctx.fillText(eyebrow,86,H*0.235);
-      drawHead(ctx,head,86,H*0.44,W-172,Math.min(W,H)*0.145,theme.headTint,'left',true);
+      drawHead(ctx,headText,86,H*0.44,W-172,Math.min(W,H)*0.145,headColor,'left',true);
       drawReturnBadge(ctx,rv,86,H*0.59,'left',theme);
       drawInfoLine(ctx,info,86,H*0.69,'left',theme);
       brandRow(ctx,W,H*0.83,theme,'left');
@@ -505,8 +531,13 @@ const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
   document.getElementById('im-make').addEventListener('click',()=>{headPhrases=null;renderSafe();});
   document.getElementById('im-fmt').addEventListener('change',renderSafe);
   document.getElementById('im-head').addEventListener('input',()=>{headPhrases=null;});
+  document.getElementById('im-head2').addEventListener('input',renderSafe);
   ['im-date','im-start','im-late','im-return'].forEach(id=>document.getElementById(id).addEventListener('input',renderSafe));
   document.getElementById('im-logo').addEventListener('change',renderSafe);
+  document.getElementById('im-headcustom').addEventListener('change',renderSafe);
+  document.getElementById('im-headcolor').addEventListener('input',()=>{if(document.getElementById('im-headcustom').checked)renderSafe();});
+  document.getElementById('im-headcolor2').addEventListener('input',()=>{if(document.getElementById('im-headcustom').checked)renderSafe();});
+  document.getElementById('im-bg').addEventListener('change',renderSafe);
   document.getElementById('im-dl').addEventListener('click',download);
 
   // init

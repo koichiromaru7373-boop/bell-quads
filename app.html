@@ -1036,14 +1036,16 @@ async function tuDoEntry(o){
   const tuMsg=document.getElementById("tuMsg");
   setMsg(tuMsg,"処理中…","");
   try{
-    if(o.spendQty>0){
-      const {data:sp,error:se}=await db.rpc("spend_tickets",{p_user:mUser.id,p_qty:o.spendQty,p_reason:o.label,p_staff:null,p_tab_id:null,p_type:o.typeId});
-      if(se)throw se;
-      const res=(sp&&sp[0])||null;
-      if(!res||!res.ok){setMsg(tuMsg,(res&&res.message==="残高不足")?"チケットが不足しています（残高が変わった可能性があります）":"使用できませんでした","err");return;}
-    }
     const tab=await ensureOpenTab(mUser.id,mUser.name);
-    await db.from("tab_orders").insert({tab_id:tab.id,name:o.rowName,price:o.price||0,qty:1,pool_value:o.poolVal||0,charge:o.price||0,is_single:!!o.isSingle});
+    // 使用＋伝票記録を1トランザクションで実行（途中失敗時はチケットも巻き戻る／取消時の返却用に種別・枚数も保存）
+    const {data,error}=await db.rpc("enter_with_ticket",{
+      p_user:mUser.id, p_name:mUser.name, p_qty:o.spendQty||0, p_type:o.typeId,
+      p_reason:o.label, p_staff:null, p_tab_id:tab.id,
+      p_row_name:o.rowName, p_price:o.price||0, p_pool_value:o.poolVal||0, p_is_single:!!o.isSingle
+    });
+    if(error)throw error;
+    const res=(data&&data[0])||null;
+    if(!res||!res.ok){setMsg(tuMsg,(res&&res.message==="残高不足")?"チケットが不足しています（残高が変わった可能性があります）":"使用できませんでした","err");return;}
     tuHideShort();tuCtx=null;
     setMsg(tuMsg,o.successMsg,"ok");
     await loadTicket(mUser.id); await loadActiveTab(mUser.id); await loadTicketUseOptions(); await loadTkHist(mUser.id);
@@ -1667,13 +1669,15 @@ async function tnTicketEntry(o){
   // o: {spendQty,label,rowName,price,poolVal,isSingle,successMsg}
   const m=document.getElementById("tabMsg");setMsg(m,"処理中…","");
   try{
-    if(o.spendQty>0){
-      const {data:sp,error:se}=await db.rpc("spend_tickets",{p_user:curTab.user_id,p_qty:o.spendQty,p_reason:o.label,p_staff:currentStaff,p_tab_id:curTab.id,p_type:o.typeId});
-      if(se)throw se;
-      const res=(sp&&sp[0])||null;
-      if(!res||!res.ok){setMsg(m,(res&&res.message==="残高不足")?"チケットが不足しています":"使用できませんでした","err");return;}
-    }
-    await db.from("tab_orders").insert({tab_id:curTab.id,name:o.rowName,price:o.price||0,qty:1,staff_name:currentStaff,pool_value:o.poolVal||0,charge:o.price||0,is_single:!!o.isSingle});
+    // 使用＋伝票記録を1トランザクションで実行（途中失敗時はチケットも巻き戻る／取消時の返却用に種別・枚数も保存）
+    const {data,error}=await db.rpc("enter_with_ticket",{
+      p_user:curTab.user_id, p_name:curTab.user_name, p_qty:o.spendQty||0, p_type:o.typeId,
+      p_reason:o.label, p_staff:currentStaff, p_tab_id:curTab.id,
+      p_row_name:o.rowName, p_price:o.price||0, p_pool_value:o.poolVal||0, p_is_single:!!o.isSingle
+    });
+    if(error)throw error;
+    const res=(data&&data[0])||null;
+    if(!res||!res.ok){setMsg(m,(res&&res.message==="残高不足")?"チケットが不足しています":"使用できませんでした","err");return;}
     setMsg(m,o.successMsg,"ok");
     await loadOrders();
   }catch(e){console.error(e);setMsg(m,"追加に失敗しました","err");}
@@ -1753,7 +1757,14 @@ async function addOrder(menuId){
 window.addOrder=addOrder;
 async function delOrder(id){
   if(!confirm("この注文を取り消しますか？"))return;
-  try{await db.from("tab_orders").delete().eq("id",id);await loadOrders();}
+  try{
+    // チケットエントリー行なら同種・同枚数を自動返却（サーバ側で1トランザクション処理）
+    const {data,error}=await db.rpc("void_tab_order",{p_order_id:id,p_staff:currentStaff||null});
+    if(error)throw error;
+    const res=(data&&data[0])||null;
+    if(res&&res.refunded>0){setMsg(document.getElementById("tabMsg"),"取消しました（🎟 "+yen(res.refunded)+"枚を返却）","ok");}
+    await loadOrders();
+  }
   catch(e){console.error(e);alert("取り消しに失敗しました");}
 }
 window.delOrder=delOrder;

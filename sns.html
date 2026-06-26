@@ -217,8 +217,8 @@
 
   // ===== Supabase（イベント自動取得）=====
   // ▼ app.html の createClient と同じ値を貼ってください（anonキーは公開用なのでOK）
-  const SUPABASE_URL      = "PASTE_SUPABASE_URL";
-  const SUPABASE_ANON_KEY = "PASTE_SUPABASE_ANON_KEY";
+  const SUPABASE_URL      = "https://dnnctulubrawypwgwgdo.supabase.co"; // ← あなたの Project URL
+const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M"; // ← あなたの anon public key
   const SB_READY = SUPABASE_URL && !SUPABASE_URL.startsWith("PASTE_") && window.supabase;
   const sb = SB_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 

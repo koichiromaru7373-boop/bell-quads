@@ -1807,16 +1807,16 @@ async function openCharge(){
   const isTicketName=n=>n&&n.indexOf("チケットエントリー")>=0;
   const normalOrds=ords.filter(o=>!isTicketName(o.name));
   const ticketOrds=ords.filter(o=>isTicketName(o.name));
-  // 通常項目（名称ごと・price合算）
-  const map={};normalOrds.forEach(o=>{if(!map[o.name])map[o.name]={name:o.name,total:0};map[o.name].total+=o.price*o.qty;});
+  // 通常項目（名称ごと・price合算＋pool_value合算）
+  const map={};normalOrds.forEach(o=>{if(!map[o.name])map[o.name]={name:o.name,total:0,pool:0};map[o.name].total+=o.price*(o.qty||1);map[o.name].pool+=(o.pool_value||0);});
   chItems=Object.values(map);
   // チケット参加分は pool_value を満額としてまとめて1項目に（案A）
   const ticketPool=ticketOrds.reduce((s,o)=>s+(o.pool_value||0),0);
   if(ticketOrds.length){chItems.push({name:"🎟 チケットエントリー",total:ticketPool,on:true,isTicket:true});}
-  // エントリー自動判定：is_entryフラグ ＋ 名称（エントリー/アドオン）の論理和。
-  // → 料金テンプレ(tournament_fee_items)由来の現金エントリーも自動ONになる。
+  // エントリー自動判定：料金行の「プールに含める」(pool_value>0) を最優先。
+  // 互換のため is_entryフラグ／名称（エントリー・アドオン）も論理和で拾う。
   const isEntryName=n=>(n||"").indexOf("エントリー")>=0||(n||"").indexOf("アドオン")>=0;
-  chItems.forEach(it=>{if(it.isTicket){it.on=true;return;}it.on=entryNames.has(it.name)||isEntryName(it.name);});
+  chItems.forEach(it=>{if(it.isTicket){it.on=true;return;}it.on=(it.pool>0)||entryNames.has(it.name)||isEntryName(it.name);});
   const tabUser={};tabs.forEach(t=>tabUser[t.id]=t.user_id);
   const entrantSet=new Set();
   normalOrds.forEach(o=>{const it=chItems.find(x=>x.name===o.name);if(it&&it.on&&tabUser[o.tab_id])entrantSet.add(tabUser[o.tab_id]);});

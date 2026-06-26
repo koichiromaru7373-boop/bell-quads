@@ -106,11 +106,13 @@
     <div class="grid">
       <div class="field"><label>タイトル（title）</label><input id="f-title" value="ナイトリーホールデム" /></div>
       <div class="field"><label>開催日（カレンダーで選択）</label><input id="f-date" type="date" /></div>
+      <div class="field wide" id="ev-pickwrap" style="display:none;"><label>この日のイベント（複数あり）</label><select id="ev-pick"></select></div>
       <div class="field wide"><label>詳細（description ＝ 時間・Buy-in・賞品など全部ここ）</label>
         <textarea id="f-desc">19:00開始（受付18:30〜）／Buy-in 2,000円／20:00までリエントリー可／上位入賞者にプライズ進呈。初心者歓迎、スタッフがサポートします。</textarea></div>
       <div class="field"><label>リンク</label><input id="f-url" value="https://bell-quads.example/events" /></div>
       <div class="field"><label>ハッシュタグ</label><input id="f-tags" value="#アミューズメントポーカー #ポーカー #釧路ポーカー #ボードゲーム #暇つぶし #BellQuads" /></div>
     </div>
+    <div style="margin-top:12px;"><span class="status" id="ev-status"></span></div>
   </section>
 
   <section class="panel">
@@ -183,6 +185,7 @@
   </p>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // ===== shared =====
   function todayJP(){const d=new Date();const w=['日','月','火','水','木','金','土'][d.getDay()];return `${d.getMonth()+1}/${d.getDate()}(${w})`;}
@@ -192,10 +195,46 @@
   document.getElementById('im-date').value = fmtJP(todayISO());
   // 開催日を選び直すと告知文・画像の日付が連動
   document.getElementById('f-date').addEventListener('change',()=>{
-    document.getElementById('im-date').value = fmtJP(document.getElementById('f-date').value);
+    const iso=document.getElementById('f-date').value;
+    document.getElementById('im-date').value = fmtJP(iso);
     generate(); renderSafe();
+    loadEventByDate(iso);
   });
   function ev(){const g=id=>document.getElementById(id).value.trim();return{name:g('f-title'),date:fmtJP(g('f-date')),note:g('f-desc'),url:g('f-url'),tags:g('f-tags')};}
+
+  // ===== Supabase（イベント自動取得）=====
+  // ▼ app.html の createClient と同じ値を貼ってください（anonキーは公開用なのでOK）
+  const SUPABASE_URL      = "PASTE_SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "PASTE_SUPABASE_ANON_KEY";
+  const SB_READY = SUPABASE_URL && !SUPABASE_URL.startsWith("PASTE_") && window.supabase;
+  const sb = SB_READY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+  function fillEvent(d){
+    document.getElementById('f-title').value = d.title || '';
+    document.getElementById('f-desc').value  = d.description || '';
+    generate(); renderSafe();
+  }
+  async function loadEventByDate(iso){
+    const st=document.getElementById('ev-status');
+    const wrap=document.getElementById('ev-pickwrap'), pick=document.getElementById('ev-pick');
+    if(!sb){ st.textContent='※ Supabase未設定（手入力モード）'; return; }
+    if(!iso){ return; }
+    st.className='status'; st.innerHTML='<span class="spin"></span> イベント情報を取得中…';
+    try{
+      const { data, error } = await sb.from('events').select('date,title,description').eq('date', iso).order('title');
+      if(error) throw error;
+      if(!data || data.length===0){ wrap.style.display='none'; st.textContent='この日に登録イベントなし（手入力できます）'; return; }
+      if(data.length===1){
+        wrap.style.display='none'; fillEvent(data[0]);
+        st.textContent='✓「'+(data[0].title||'')+'」を読み込みました';
+      }else{
+        pick.innerHTML=''; data.forEach((d,i)=>{const o=document.createElement('option');o.value=i;o.textContent=d.title||('イベント'+(i+1));pick.appendChild(o);});
+        pick._rows=data; wrap.style.display=''; fillEvent(data[0]);
+        st.textContent='✓ '+data.length+'件あります。上のメニューで選べます';
+      }
+    }catch(err){ st.className='status err'; st.textContent='取得に失敗: '+err.message+'（手入力できます）'; }
+  }
+  document.getElementById('ev-pick').addEventListener('change',e=>{ const rows=e.target._rows; if(rows) fillEvent(rows[+e.target.value]); });
 
   // ===== 1) text =====
   function tplX(e){let s=`🔔本日 ${e.date}「${e.name}」\n\n${e.note}\n\n`;if(e.url)s+=`${e.url}\n`;s+=e.tags;return s.trim();}
@@ -473,4 +512,5 @@
   // init
   generate();
   renderSafe();
+  loadEventByDate(document.getElementById('f-date').value);
 </script>

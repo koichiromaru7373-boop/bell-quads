@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポーカー入門 ｜ Bell Quads</title>
+<meta name="description" content="はじめてのテキサスホールデム。役の強さ・ゲームの流れ・リング／トーナメントの参加方法を、画像つきでやさしく解説。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0c0b0a; --ink-2:#141009; --ink-3:#1c160d;
+  --gold:#d4af37; --gold-2:#b8902f; --gold-bright:#f3dd8b;
+  --cream:#f3ead6; --cream-dim:#b3a888; --taupe:#8a7355;
+  --line:rgba(212,175,55,.22); --line-soft:rgba(212,175,55,.13); --neon:#ff3da6;
+  --felt:#1a472a; --felt-d:#0f3320; --app-line:#2c7a4e; --red:#e0524a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:"Noto Sans JP",system-ui,sans-serif;color:var(--cream);line-height:1.85;
+  background:radial-gradient(900px 520px at 50% -6%, #241a08 0%, transparent 58%), var(--ink);-webkit-font-smoothing:antialiased}
+.display{font-family:"Cinzel",serif}
+.cormorant{font-family:"Cormorant Garamond",serif}
+.container{max-width:760px;margin-inline:auto;padding:0 18px 80px}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;max-width:760px;margin-inline:auto;
+  position:sticky;top:0;z-index:10;background:rgba(12,11,10,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
+.back{color:var(--cream-dim);text-decoration:none;font-size:.85rem}
+.back:hover{color:var(--gold)}
+.tb-brand{display:flex;align-items:center;gap:.5rem}
+.tb-brand .mk{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--gold-bright),var(--gold-2));color:#1a1303;font-family:"Cinzel",serif;font-weight:800;font-size:.95rem}
+.tb-brand b{font-family:"Cinzel",serif;font-weight:700;font-size:.95rem;letter-spacing:.04em}
+
+/* タブ */
+.gtabs{display:flex;gap:8px;max-width:760px;margin:14px auto 0;padding:0 18px}
+.gtabs a{flex:1;text-align:center;text-decoration:none;padding:11px 8px;border-radius:12px 12px 0 0;
+  font-size:.9rem;font-weight:700;color:var(--cream-dim);background:rgba(255,255,255,.03);border:1px solid var(--line-soft);border-bottom:none}
+.gtabs a.active{color:#1a1303;background:linear-gradient(145deg,var(--gold-bright),var(--gold-2));border-color:transparent}
+.gtabs a:not(.active):hover{color:var(--gold)}
+
+.hero{text-align:center;padding:34px 18px 14px}
+.hero .suits{color:var(--gold);letter-spacing:.5em;font-size:1.1rem;margin-bottom:16px}
+.hero .eyebrow{font-family:"Cinzel",serif;font-size:.74rem;letter-spacing:.4em;color:var(--gold);font-weight:600;text-transform:uppercase}
+.hero h1{font-family:"Cormorant Garamond",serif;font-weight:700;font-size:2.6rem;line-height:1.2;margin:10px 0 8px}
+.hero p{color:var(--cream-dim);font-size:1rem;max-width:560px;margin-inline:auto}
+
+.card{background:linear-gradient(180deg, rgba(28,22,13,.6), rgba(20,16,9,.5));border:1px solid var(--line);
+  border-radius:20px;padding:26px 24px 28px;margin:18px 0;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.eyebrow{font-family:"Cinzel",serif;font-size:.72rem;letter-spacing:.32em;color:var(--gold);font-weight:600;text-transform:uppercase}
+.ptitle{font-family:"Cormorant Garamond",serif;font-weight:700;color:var(--cream);font-size:1.9rem;line-height:1.25;margin-top:4px;
+  display:flex;gap:.55rem;align-items:center;flex-wrap:wrap}
+.ptitle .step{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(145deg,var(--gold-bright),var(--gold-2));color:#1a1303;font-family:"Cinzel",serif;font-weight:800;font-size:1.1rem;
+  box-shadow:0 6px 16px rgba(212,175,55,.3)}
+.lead{color:var(--cream-dim);font-size:.97rem;margin:12px 0 4px}
+h2.sub{font-size:1.12rem;color:var(--gold-bright);font-weight:700;margin:24px 0 6px;padding-left:12px;border-left:3px solid var(--gold)}
+.card p{font-size:.96rem;margin:9px 0;color:var(--cream)}
+.card b.g{color:var(--gold-bright)}
+
+.steps{margin:14px 0}
+.st{display:flex;gap:14px;padding:9px 0;border-bottom:1px solid var(--line-soft)}
+.st:last-child{border-bottom:none}
+.st .n{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:rgba(212,175,55,.14);border:1px solid var(--gold);
+  color:var(--gold-bright);display:grid;place-items:center;font-weight:700;font-size:.92rem;font-family:"Cinzel",serif}
+.st .t{font-size:.95rem;padding-top:2px}
+.st .t b{color:var(--gold-bright)}
+.key{display:inline-block;background:rgba(212,175,55,.16);border:1px solid var(--line);color:var(--gold-bright);font-weight:700;
+  padding:1px 9px;border-radius:6px;font-size:.85rem;margin:0 1px}
+
+.note{background:rgba(255,61,166,.06);border:1px solid rgba(255,61,166,.28);border-radius:13px;padding:13px 16px;margin:14px 0;
+  font-size:.9rem;color:var(--cream);display:flex;gap:11px}
+.note .i{font-size:1.2rem;flex-shrink:0}
+.note b{color:#ff9dd0}
+.tip{background:rgba(62,201,122,.07);border:1px solid rgba(62,201,122,.3);border-radius:13px;padding:13px 16px;margin:14px 0;
+  font-size:.9rem;color:#bfeccf;display:flex;gap:11px}
+.tip .i{font-size:1.2rem;flex-shrink:0}
+.tip b{color:#7fe0a3}
+
+/* === トランプカード === */
+.hand{display:flex;gap:5px;flex-wrap:wrap}
+.pcard{display:inline-flex;flex-direction:column;justify-content:space-between;width:46px;height:64px;
+  background:#fdfcf7;border-radius:6px;padding:3px 5px;box-shadow:0 3px 8px rgba(0,0,0,.45);
+  font-family:"Georgia",serif;font-weight:700;flex-shrink:0}
+.pcard .tr{font-size:13px;line-height:1}
+.pcard .ce{font-size:21px;text-align:center;margin-top:-3px}
+.pcard.red{color:#c0392b}
+.pcard.blk{color:#17110a}
+.pcard.back{background:repeating-linear-gradient(45deg,#7a1f1f,#7a1f1f 5px,#9c2a2a 5px,#9c2a2a 10px);border:2px solid #fdfcf7}
+
+/* 役テーブル */
+.ranktbl{margin:14px 0}
+.rrow{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.rrow:last-child{border-bottom:none}
+.rrow .rk{width:26px;height:26px;border-radius:50%;background:var(--gold);color:#1a1303;display:grid;place-items:center;
+  font-weight:800;font-size:.82rem;font-family:"Cinzel",serif;flex-shrink:0}
+.rrow .info{flex:1;min-width:180px}
+.rrow .info b{color:var(--gold-bright);font-size:1rem;display:block}
+.rrow .info small{color:var(--cream-dim);font-size:.82rem}
+.rrow .hand{transform:scale(.82);transform-origin:left center}
+
+/* 比較表 */
+.cmp{width:100%;border-collapse:collapse;margin:14px 0;font-size:.9rem}
+.cmp th,.cmp td{border:1px solid var(--line-soft);padding:10px 12px;text-align:left;vertical-align:top}
+.cmp th{background:rgba(212,175,55,.12);color:var(--gold-bright);font-weight:700}
+.cmp td:first-child{color:var(--gold-bright);font-weight:700;white-space:nowrap;background:rgba(255,255,255,.02)}
+.cmp .r{color:#7fe0a3} .cmp .t{color:#ff9dd0}
+
+figure{margin:18px 0;text-align:center}
+figure svg{width:100%;height:auto;max-width:560px;border-radius:18px}
+figcaption{font-size:.8rem;color:var(--taupe);margin-top:9px}
+
+.endcta{text-align:center;margin:26px 0 6px;padding:30px 22px;background:linear-gradient(180deg,rgba(36,26,8,.7),rgba(20,16,9,.6));
+  border:1px solid var(--line);border-radius:20px}
+.endcta .suits{color:var(--gold);letter-spacing:.4em;font-size:1.1rem}
+.endcta h3{font-family:"Cormorant Garamond",serif;font-size:1.7rem;color:var(--cream);margin:8px 0 16px;line-height:1.4}
+.btn{display:inline-flex;align-items:center;gap:.6rem;font-weight:700;padding:.95rem 1.8rem;border-radius:999px;text-decoration:none;
+  font-size:.95rem;transition:.2s;border:1px solid transparent;font-family:inherit;margin:5px}
+.btn-gold{background:linear-gradient(145deg,var(--gold-bright),var(--gold-2));color:#1a1303;box-shadow:0 8px 24px rgba(212,175,55,.3)}
+.btn-gold:hover{transform:translateY(-2px)}
+.btn-ghost{background:transparent;color:var(--cream);border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+
+footer{text-align:center;color:var(--taupe);font-size:.8rem;padding:30px 10px 0}
+footer .b{font-family:"Cinzel",serif;color:var(--gold);letter-spacing:.06em}
+
+@media(max-width:520px){
+  .hero h1{font-size:2.1rem}.ptitle{font-size:1.6rem}.card{padding:22px 18px 24px}
+  .pcard{width:40px;height:56px}.pcard .ce{font-size:18px}.pcard .tr{font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="index.html">‹ サイトトップ</a>
+  <div class="tb-brand"><span class="mk">Q</span><b>Bell Quads</b></div>
+</div>
+<div class="gtabs">
+  <a href="guide.html">📱 アプリの使い方</a>
+  <a href="poker.html" class="active">♠ ポーカー入門</a>
+</div>
+
+<div class="hero">
+  <div class="suits">♠ ♥ ♦ ♣</div>
+  <span class="eyebrow">Poker for Beginners</span>
+  <h1 class="cormorant">はじめてのポーカー</h1>
+  <p>ルールを知らなくても大丈夫。役の強さからゲームの流れ、リング・トーナメントの出かたまで、ここで全部わかります。</p>
+</div>
+
+<div class="container">
+
+
+  <!-- 1 目的 -->
+  <div class="card">
+    <span class="eyebrow">What is Poker</span>
+    <div class="ptitle cormorant"><span class="step">1</span>どんなゲーム？</div>
+    <p class="lead">Bell Quads で遊ぶのは <b class="g">テキサスホールデム</b> という、世界で一番人気のポーカーです。やることはシンプル。</p>
+    <p>配られたカードで <b class="g">強い5枚の組み合わせ（役）</b> を作り、テーブルのみんなと比べて<b class="g">一番強い人がチップを総取り</b>します。役を比べずに、途中で全員が降りれば、最後まで残った人の勝ちです。</p>
+    <div class="note"><span class="i">🎴</span><div>Bell Quads は<b>賭けごとではなくアミューズメント</b>です。チップはお金ではなく、ゲームを楽しむための点数。勝ち負けでお金のやり取りはしません。</div></div>
+    <div class="tip"><span class="i">💡</span><div>覚えることは2つだけ。<b>①役の強さ</b>と<b>②順番に来る選択（賭ける/降りる）</b>。このページで順番に説明します。</div></div>
+  </div>
+
+  <!-- 2 配られるカード -->
+  <div class="card">
+    <span class="eyebrow">Cards</span>
+    <div class="ptitle cormorant"><span class="step">2</span>配られるカード</div>
+    <p class="lead">使うカードは2種類。自分だけの<b class="g">手札2枚</b>と、全員で共有する<b class="g">場のカード5枚</b>です。</p>
+
+    <h2 class="sub">あなたの手札（2枚）</h2>
+    <p>自分にだけ配られる、ふせた2枚。これは他の人には見せません。</p>
+    <figure style="max-width:160px;margin-inline:auto"><div data-hand="As,Kh"></div></figure>
+
+    <h2 class="sub">場のカード（5枚・みんな共通）</h2>
+    <p>テーブルの真ん中に表向きで並ぶ5枚。全員がこの5枚を使えます。</p>
+    <figure style="max-width:320px;margin-inline:auto"><div data-hand="Ad,Qs,7h,2c,9d"></div></figure>
+
+    <div class="tip"><span class="i">🃏</span><div><b>合計7枚（手札2＋場5）の中から、一番強い5枚</b>を自動で選んで役になります。組み合わせを自分で計算しなくても、強い形が自然にできていればOK。</div></div>
+  </div>
+
+  <!-- 3 役の強さ -->
+  <div class="card">
+    <span class="eyebrow">Hand Ranking ★ 最重要</span>
+    <div class="ptitle cormorant"><span class="step">3</span>役の強さ</div>
+    <p class="lead">ポーカーで一番大切なのがこれ。<b class="g">上が一番強く、下にいくほど弱い</b>役です。まずは「ペア」「ストレート」「フラッシュ」あたりを覚えれば十分遊べます。</p>
+
+    <div class="ranktbl">
+      <div class="rrow"><span class="rk">1</span><div class="info"><b>ロイヤルフラッシュ</b><small>同じマークの 10・J・Q・K・A。最強。めったに出ません。</small></div><div data-hand="10s,Js,Qs,Ks,As"></div></div>
+      <div class="rrow"><span class="rk">2</span><div class="info"><b>ストレートフラッシュ</b><small>同じマークで数字が5枚連続。</small></div><div data-hand="5h,6h,7h,8h,9h"></div></div>
+      <div class="rrow"><span class="rk">3</span><div class="info"><b>フォーカード（クワッズ）</b><small>同じ数字が4枚。</small></div><div data-hand="Qs,Qh,Qd,Qc,3s"></div></div>
+      <div class="rrow"><span class="rk">4</span><div class="info"><b>フルハウス</b><small>「3枚そろい」＋「2枚そろい」。</small></div><div data-hand="Ks,Kh,Kd,7s,7h"></div></div>
+      <div class="rrow"><span class="rk">5</span><div class="info"><b>フラッシュ</b><small>マークが5枚そろう（数字バラバラでOK）。</small></div><div data-hand="Ah,Jh,8h,5h,2h"></div></div>
+      <div class="rrow"><span class="rk">6</span><div class="info"><b>ストレート</b><small>数字が5枚連続（マークはバラバラでOK）。</small></div><div data-hand="5s,6h,7d,8c,9s"></div></div>
+      <div class="rrow"><span class="rk">7</span><div class="info"><b>スリーカード</b><small>同じ数字が3枚。</small></div><div data-hand="8s,8h,8d,Ks,4c"></div></div>
+      <div class="rrow"><span class="rk">8</span><div class="info"><b>ツーペア</b><small>2枚そろいが2組。</small></div><div data-hand="As,Ah,9s,9c,4d"></div></div>
+      <div class="rrow"><span class="rk">9</span><div class="info"><b>ワンペア</b><small>同じ数字が2枚。</small></div><div data-hand="10s,10h,Ks,7d,2c"></div></div>
+      <div class="rrow"><span class="rk">10</span><div class="info"><b>ハイカード</b><small>何もそろわないとき。一番大きい数字で勝負。</small></div><div data-hand="As,Kd,9h,6c,2s"></div></div>
+    </div>
+
+    <div class="note"><span class="i">♠</span><div>お店の名前 <b>Bell Quads</b> の "Quads" は、3番目の役 <b>フォーカード（4枚そろい）</b> のこと。狙えたら最高の瞬間です。</div></div>
+    <div class="tip"><span class="i">💡</span><div>数字の強さは <b>A（エース）が一番強く</b>、続いて K → Q → J → 10 → … → 2 の順。同じ役どうしなら、使っている数字が大きい方が勝ちます。</div></div>
+  </div>
+
+  <!-- 4 テーブルの仕組み -->
+  <div class="card">
+    <span class="eyebrow">The Table</span>
+    <div class="ptitle cormorant"><span class="step">4</span>テーブルの仕組み</div>
+    <p class="lead">席にはいくつか役割があります。最初は<b class="g">「ボタン」「SB」「BB」</b>の3つだけ知っていればOK。これらは1ハンドごとに左へひとつずつ動きます。</p>
+
+    <figure>
+      <svg viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg" font-family="Noto Sans JP, sans-serif">
+        <ellipse cx="280" cy="160" rx="210" ry="120" fill="#1a472a" stroke="#cda82b" stroke-width="3"/>
+        <ellipse cx="280" cy="160" rx="180" ry="95" fill="none" stroke="#2c7a4e" stroke-width="1.5"/>
+        <g>
+          <rect x="218" y="142" width="22" height="32" rx="3" fill="#fdfcf7"/><rect x="244" y="142" width="22" height="32" rx="3" fill="#fdfcf7"/>
+          <rect x="270" y="142" width="22" height="32" rx="3" fill="#fdfcf7"/><rect x="296" y="142" width="22" height="32" rx="3" fill="#7a1f1f"/>
+          <rect x="322" y="142" width="22" height="32" rx="3" fill="#7a1f1f"/>
+        </g>
+        <text x="280" y="200" font-size="11" fill="#bcd3c4" text-anchor="middle">場のカード</text>
+        <g font-size="10" text-anchor="middle">
+          <circle cx="280" cy="280" r="22" fill="#0f3320" stroke="#f4d03f" stroke-width="2"/><text x="280" y="284" fill="#fdfaf0">あなた</text>
+          <circle cx="305" cy="272" r="11" fill="#f4d03f"/><text x="305" y="276" fill="#1a1303" font-weight="700">D</text>
+          <circle cx="150" cy="248" r="22" fill="#0f3320" stroke="#2c7a4e"/><text x="150" y="252" fill="#bcd3c4">SB</text>
+          <circle cx="70" cy="160" r="22" fill="#0f3320" stroke="#2c7a4e"/><text x="70" y="164" fill="#bcd3c4">BB</text>
+          <circle cx="150" cy="72" r="20" fill="#0f3320" stroke="#2c7a4e"/><text x="150" y="76" fill="#7fa890">席</text>
+          <circle cx="280" cy="48" r="20" fill="#0f3320" stroke="#2c7a4e"/><text x="280" y="52" fill="#7fa890">席</text>
+          <circle cx="410" cy="72" r="20" fill="#0f3320" stroke="#2c7a4e"/><text x="410" y="76" fill="#7fa890">席</text>
+          <circle cx="490" cy="160" r="20" fill="#0f3320" stroke="#2c7a4e"/><text x="490" y="164" fill="#7fa890">席</text>
+          <circle cx="410" cy="248" r="20" fill="#0f3320" stroke="#2c7a4e"/><text x="410" y="252" fill="#7fa890">席</text>
+        </g>
+      </svg>
+      <figcaption>「D」がディーラーボタン。その左どなりがSB、さらに左がBB。</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="st"><span class="n">D</span><div class="t"><b>ディーラーボタン</b>… 「親」の目印。配る順番の基準になり、毎ハンド左へ動きます。</div></div>
+      <div class="st"><span class="n">SB</span><div class="t"><b>スモールブラインド</b>… ボタンの左どなり。カードを見る前に<b>少しだけチップを出す</b>席。</div></div>
+      <div class="st"><span class="n">BB</span><div class="t"><b>ビッグブラインド</b>… SBの左どなり。SBの<b>2倍</b>のチップを先に出す席。</div></div>
+    </div>
+    <div class="tip"><span class="i">💡</span><div><b>ブラインドって？</b> カードを見る前に出す「参加料のチップ」のこと。これがあるから、みんな勝ちに行く動機が生まれます。出す席は順番に回ってくるので不公平にはなりません。</div></div>
+  </div>
+
+  <!-- 5 ゲームの流れ -->
+  <div class="card">
+    <span class="eyebrow">The Flow</span>
+    <div class="ptitle cormorant"><span class="step">5</span>ゲームの流れ</div>
+    <p class="lead">1回のゲーム（ハンド）は<b class="g">4つの場面</b>で進みます。場のカードが少しずつ開いていき、そのたびに「賭ける/降りる」を選びます。</p>
+
+    <h2 class="sub">① プリフロップ（手札が配られた直後）</h2>
+    <p>場のカードはまだ0枚。自分の手札2枚だけを見て、参加するか決めます。</p>
+    <figure style="max-width:340px;margin-inline:auto"><div data-hand="back,back,back,back,back"></div></figure>
+
+    <h2 class="sub">② フロップ（場に3枚オープン）</h2>
+    <p>場のカードが3枚いっぺんに開きます。手札2枚＋この3枚で、役の形が見えてきます。</p>
+    <figure style="max-width:340px;margin-inline:auto"><div data-hand="Ad,Qs,7h,back,back"></div></figure>
+
+    <h2 class="sub">③ ターン（4枚目）</h2>
+    <p>場に4枚目が追加。役が完成に近づきます。</p>
+    <figure style="max-width:340px;margin-inline:auto"><div data-hand="Ad,Qs,7h,2c,back"></div></figure>
+
+    <h2 class="sub">④ リバー（5枚目・最後）</h2>
+    <p>最後の5枚目が開きます。これで場のカードが全部そろいました。</p>
+    <figure style="max-width:340px;margin-inline:auto"><div data-hand="Ad,Qs,7h,2c,9d"></div></figure>
+
+    <div class="tip"><span class="i">🏁</span><div>リバーまで残った人は、最後に<b>手札を見せ合い（ショーダウン）</b>、一番強い役の人がチップを総取りします。途中で全員が降りたら、残った1人の勝ちです。</div></div>
+  </div>
+
+  <!-- 6 アクション -->
+  <div class="card">
+    <span class="eyebrow">Your Choices</span>
+    <div class="ptitle cormorant"><span class="step">6</span>自分の番でできること</div>
+    <p class="lead">順番が回ってきたら、次の中から選ぶだけ。<b class="g">基本はこの4つ</b>（＋オールイン）です。</p>
+    <div class="steps">
+      <div class="st"><span class="n">✓</span><div class="t"><b>チェック</b>（パス）… だれもまだ賭けていないとき、<b>賭けずに次の人へ回す</b>。タダで次のカードを見られます。</div></div>
+      <div class="st"><span class="n">↑</span><div class="t"><b>ベット / レイズ</b>… <b>チップを賭ける</b>。最初に賭けるのがベット、前の人に上乗せするのがレイズ。</div></div>
+      <div class="st"><span class="n">＝</span><div class="t"><b>コール</b>… 前の人と<b>同じ額のチップを出して</b>、ゲームを続ける。</div></div>
+      <div class="st"><span class="n">✕</span><div class="t"><b>フォールド</b>（降りる）… <b>手札を捨ててこのハンドから抜ける</b>。出したチップは戻りませんが、それ以上は失いません。</div></div>
+      <div class="st"><span class="n">!!</span><div class="t"><b>オールイン</b>… 持っているチップを<b>全部</b>賭ける、いちかばちかの勝負。</div></div>
+    </div>
+    <div class="tip"><span class="i">💡</span><div><b>迷ったら？</b> いい手なら<b>ベット/レイズ</b>、まあまあなら<b>コール</b>、弱ければ<b>フォールド</b>。慣れるまでは「弱い手はさっさと降りる」だけでも十分戦えます。</div></div>
+  </div>
+
+  <!-- 7 実例 -->
+  <div class="card">
+    <span class="eyebrow">Example</span>
+    <div class="ptitle cormorant"><span class="step">7</span>1ゲームの流れ（実例）</div>
+    <p class="lead">実際に1ハンド、最初から最後まで追ってみましょう。</p>
+    <h2 class="sub">手札が配られた</h2>
+    <p>あなたの手札はこちら。エースとキング、強い2枚です。「これは行ける」と参加（コール）。</p>
+    <figure style="max-width:160px;margin-inline:auto"><div data-hand="As,Kh"></div></figure>
+    <h2 class="sub">フロップが開く</h2>
+    <p>場に3枚。なんとエースが1枚！ 手札のエースと合わせて<b class="g">エースのペア</b>ができました。強いので<b>ベット</b>します。</p>
+    <figure style="max-width:220px;margin-inline:auto"><div data-hand="Ad,7h,2c"></div></figure>
+    <h2 class="sub">ターン・リバー</h2>
+    <p>4枚目・5枚目が開いても、ペアは崩れません。相手はコールしてついてきます。</p>
+    <figure style="max-width:340px;margin-inline:auto"><div data-hand="Ad,7h,2c,9s,4d"></div></figure>
+    <h2 class="sub">ショーダウン（見せ合い）</h2>
+    <p>手札を見せ合います。相手は<b>キングのペア</b>。あなたは<b class="g">エースのペア</b>。エースの方が強いので——<b class="g">あなたの勝ち！</b> チップを総取りです。</p>
+    <div class="tip"><span class="i">🏆</span><div>同じ「ワンペア」でも、数字が大きい方（A＞K）が勝ち。これが「役の中の強さ」です。</div></div>
+  </div>
+
+  <!-- 8 リング -->
+  <div class="card">
+    <span class="eyebrow">Ring Game</span>
+    <div class="ptitle cormorant"><span class="step">8</span>リングゲームってなに？</div>
+    <p class="lead"><b class="g">いつ来て、いつ帰ってもいい</b>、自由なテーブルです。「キャッシュゲーム」とも呼びます。はじめての方は、まずこちらがおすすめ。</p>
+    <div class="steps">
+      <div class="st"><span class="n">1</span><div class="t"><b>好きなタイミングで参加</b>… 空いている席に座ればすぐ始められます。</div></div>
+      <div class="st"><span class="n">2</span><div class="t"><b>チップを買って遊ぶ</b>… 100BB・200BB など、欲しいぶんのチップを用意（アプリの「リング買い足し」から）。</div></div>
+      <div class="st"><span class="n">3</span><div class="t"><b>いつでも抜けられる</b>… 1ハンドだけでも、何時間でもOK。帰りたくなったら退席するだけ。</div></div>
+      <div class="st"><span class="n">4</span><div class="t"><b>足りなくなったら買い足し</b>… チップが減ったら、その場で買い足して続けられます。</div></div>
+    </div>
+    <div class="tip"><span class="i">🌱</span><div><b>初心者にやさしい理由：</b> 自分のペースで、少しずつ慣れられます。緊張せず、わからないことはスタッフに聞きながら遊べます。</div></div>
+  </div>
+
+  <!-- 9 トーナメント -->
+  <div class="card">
+    <span class="eyebrow">Tournament</span>
+    <div class="ptitle cormorant"><span class="step">9</span>トーナメントってなに？</div>
+    <p class="lead"><b class="g">みんな一斉にスタートして、勝ち残りを競う大会</b>です。決まった時間に始まり、最後まで残った上位の人が賞品をもらえます。</p>
+    <div class="steps">
+      <div class="st"><span class="n">1</span><div class="t"><b>参加費（エントリー）を払って参加</b>… 全員が同じ参加費。Bell Quads ではチケットでも参加できます。</div></div>
+      <div class="st"><span class="n">2</span><div class="t"><b>全員、同じ枚数のチップでスタート</b>… 横一線。実力が出やすい形式です。</div></div>
+      <div class="st"><span class="n">3</span><div class="t"><b>チップが0になったら脱落</b>… 負けて手持ちが尽きたら、そこで終わり。</div></div>
+      <div class="st"><span class="n">4</span><div class="t"><b>時間とともにブラインドが上昇</b>… だんだん必要チップが増え、自然と決着へ向かいます。</div></div>
+      <div class="st"><span class="n">5</span><div class="t"><b>上位入賞で賞品</b>… 最後まで残った人ほど大きな賞品。1位を目指します。</div></div>
+    </div>
+    <div class="note"><span class="i">🎟️</span><div><b>リエントリー</b>＝早めに脱落しても、もう一度参加費を払って戻れる仕組み。<b>アドオン</b>＝決まったタイミングで追加チップを買える仕組み。どちらも任意です。</div></div>
+  </div>
+
+  <!-- 10 比較 -->
+  <div class="card">
+    <span class="eyebrow">Ring vs Tournament</span>
+    <div class="ptitle cormorant"><span class="step">10</span>リングとトーナメント、どっち？</div>
+    <p class="lead">ちがいをひとことで言うと、<b class="g">リングは「自由」</b>、<b class="g">トーナメントは「大会」</b>。表で見くらべましょう。</p>
+    <table class="cmp">
+      <tr><th>　</th><th class="r">♦ リングゲーム</th><th class="t">♠ トーナメント</th></tr>
+      <tr><td>参加・退出</td><td class="r">いつでも自由</td><td class="t">決まった時間にスタート</td></tr>
+      <tr><td>スタートのチップ</td><td class="r">好きなだけ買う</td><td class="t">全員おなじ枚数</td></tr>
+      <tr><td>負けたとき</td><td class="r">買い足して続行OK</td><td class="t">0になったら脱落</td></tr>
+      <tr><td>かかる時間</td><td class="r">自分しだい（短くてOK）</td><td class="t">終わるまで（長め）</td></tr>
+      <tr><td>もらえるもの</td><td class="r">その場のチップ勝負</td><td class="t">上位入賞で賞品</td></tr>
+      <tr><td>こんな人に</td><td class="r">まず慣れたい／短時間で</td><td class="t">本気で1位を狙いたい</td></tr>
+    </table>
+    <div class="tip"><span class="i">👍</span><div><b>はじめてなら：</b> まず<b>リングゲーム</b>で役とアクションに慣れて、自信がついたら<b>トーナメント</b>に挑戦——この順番がおすすめです。</div></div>
+  </div>
+
+  <!-- 11 参加するには -->
+  <div class="card">
+    <span class="eyebrow">Join at Bell Quads</span>
+    <div class="ptitle cormorant"><span class="step">11</span>Bell Quadsで遊ぶには</div>
+    <p class="lead">ルールがわかったら、あとは来店するだけ。流れはとてもかんたんです。</p>
+    <div class="steps">
+      <div class="st"><span class="n">1</span><div class="t"><b>アプリで会員登録</b>… お名前と4桁のPINだけ。（→「アプリの使い方」タブ）</div></div>
+      <div class="st"><span class="n">2</span><div class="t"><b>来店してQRを見せる</b>… マイページのQRをスタッフへ。すぐに席へご案内します。</div></div>
+      <div class="st"><span class="n">3</span><div class="t"><b>リングで遊ぶ</b>… チップを買って着席。まずはここで慣れましょう。</div></div>
+      <div class="st"><span class="n">4</span><div class="t"><b>トーナメントに挑戦</b>… 開催日はサイトのカレンダーで確認。チケットでも参加できます。</div></div>
+    </div>
+    <div class="tip"><span class="i">🙋</span><div>はじめての方は、受付で「<b>初めてです</b>」とひとこと伝えてください。スタッフがやさしくレクチャーします。手ぶらでOK、見学だけでも歓迎です。</div></div>
+  </div>
+
+  <!-- 12 コツとマナー -->
+  <div class="card">
+    <span class="eyebrow">Tips & Manners</span>
+    <div class="ptitle cormorant"><span class="step">12</span>初心者のコツとマナー</div>
+    <h2 class="sub">勝つためのコツ</h2>
+    <div class="steps">
+      <div class="st"><span class="n">♠</span><div class="t"><b>弱い手は降りる勇気</b>… 全部のハンドで勝とうとしない。良い手のときだけ戦うのが上達の近道。</div></div>
+      <div class="st"><span class="n">♥</span><div class="t"><b>強い2枚から</b>… A・K・Q やペアなど、強い手札のときに積極的に。</div></div>
+      <div class="st"><span class="n">♦</span><div class="t"><b>場のカードをよく見る</b>… 自分の役が場の5枚でどう変わるか意識しましょう。</div></div>
+      <div class="st"><span class="n">♣</span><div class="t"><b>無理をしない</b>… 自分のペースで。わからなければスタッフに聞けばOK。</div></div>
+    </div>
+    <h2 class="sub">テーブルでのマナー</h2>
+    <div class="steps">
+      <div class="st"><span class="n">1</span><div class="t"><b>自分の番を待つ</b>… アクションは順番に。先走らないように。</div></div>
+      <div class="st"><span class="n">2</span><div class="t"><b>手札は他の人に見せない</b>… 自分だけが見るカードです。</div></div>
+      <div class="st"><span class="n">3</span><div class="t"><b>ゆっくりで大丈夫</b>… 迷ったら時間をかけてOK。みんな通った道です。</div></div>
+      <div class="st"><span class="n">4</span><div class="t"><b>勝っても負けても気持ちよく</b>… みんなで楽しむのが一番のルールです。</div></div>
+    </div>
+    <div class="tip"><span class="i">🎉</span><div>最初はだれでも初心者。役の強さとアクションさえ覚えれば、もう一緒に楽しめます。テーブルでお待ちしています！</div></div>
+  </div>
+
+
+
+  <div class="endcta">
+    <div class="suits">♠ ♥ ♦ ♣</div>
+    <h3 class="cormorant">あとは、テーブルで楽しむだけ。</h3>
+    <a class="btn btn-gold" href="guide.html">📱 アプリの使い方を見る</a>
+    <a class="btn btn-ghost" href="index.html">サイトトップへ戻る</a>
+  </div>
+  <footer><div class="b">♠ Bell Quads</div>静寂の駆け引き、ゴールドの夜へ。</footer>
+</div>
+
+<script>
+// トランプカードを描く
+const SUIT={s:"♠",h:"♥",d:"♦",c:"♣"};
+function pcard(code){
+  if(code==="back") return '<div class="pcard back"></div>';
+  const r=code.slice(0,-1), su=code.slice(-1), red=(su==="h"||su==="d");
+  return '<div class="pcard '+(red?"red":"blk")+'"><div class="tr">'+r+SUIT[su]+'</div><div class="ce">'+SUIT[su]+'</div></div>';
+}
+function hand(codes){return '<div class="hand">'+codes.map(pcard).join("")+'</div>';}
+document.querySelectorAll("[data-hand]").forEach(el=>{
+  el.innerHTML=hand(el.getAttribute("data-hand").split(","));
+});
+</script>
+</body>
+</html>

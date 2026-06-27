@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+:root{
+  --felt:#1a472a; --felt-d:#0f3320; --felt-dd:#0a2417; --felt-l:#236b43; --line:#2c7a4e;
+  --gold:#f4d03f; --gold-d:#cda82b; --cream:#fdfaf0; --dim:#bcd3c4;
+  --ink:#0a2417; --ok:#3ec97a; --paper:#fbfaf4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:"Noto Sans CJK JP",sans-serif;color:#1c2c22;line-height:1.85}
+.serif{font-family:"Noto Serif CJK JP",serif}
+@page{size:A4;margin:0}
+
+.page{
+  width:210mm;min-height:297mm;padding:17mm 18mm;position:relative;
+  page-break-after:always;background:var(--paper);overflow:hidden;
+}
+.page:last-child{page-break-after:auto}
+
+/* ===== 表紙 ===== */
+.cover{
+  background:
+    radial-gradient(800px 460px at 50% 12%, #2a7d4e 0%, transparent 60%),
+    var(--felt-d);
+  color:var(--cream);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+}
+.cover .suits{font-size:26px;letter-spacing:.5em;color:var(--gold);margin-bottom:26px}
+.cover .mk{
+  width:92px;height:92px;border-radius:22px;display:grid;place-items:center;margin-bottom:26px;
+  background:linear-gradient(145deg,var(--gold),var(--gold-d));color:var(--ink);
+  font-family:"Noto Serif CJK JP",serif;font-weight:900;font-size:54px;
+  box-shadow:0 16px 44px rgba(0,0,0,.5);
+}
+.cover .brand{font-family:"Noto Serif CJK JP",serif;font-weight:900;font-size:46px;letter-spacing:.02em}
+.cover .sub{color:var(--gold);letter-spacing:.36em;font-size:15px;font-weight:700;margin-top:8px}
+.cover h1{font-size:30px;font-weight:900;margin-top:46px;line-height:1.5}
+.cover .tag{font-size:15px;color:var(--dim);margin-top:14px}
+.cover .welcome{
+  margin-top:40px;border:1px solid var(--gold);border-radius:14px;padding:16px 30px;
+  color:var(--gold);font-size:16px;font-weight:700;letter-spacing:.08em
+}
+.cover .foot{position:absolute;bottom:22mm;color:#7fa890;font-size:12px;letter-spacing:.2em}
+
+/* ===== 中ページ共通 ===== */
+.eyebrow{
+  display:inline-block;font-size:12px;letter-spacing:.2em;font-weight:700;color:var(--gold-d);
+  border-bottom:2px solid var(--gold);padding-bottom:3px;margin-bottom:10px
+}
+.ptitle{font-family:"Noto Serif CJK JP",serif;font-weight:900;color:var(--felt);font-size:28px;line-height:1.3}
+.ptitle .step{
+  display:inline-grid;place-items:center;width:42px;height:42px;border-radius:50%;
+  background:linear-gradient(145deg,var(--gold),var(--gold-d));color:var(--ink);
+  font-size:22px;margin-right:12px;vertical-align:middle;box-shadow:0 5px 12px rgba(0,0,0,.18)
+}
+.lead{font-size:15px;color:#33473b;margin:14px 0 4px}
+h2.sub{font-size:18px;color:var(--felt);font-weight:900;margin:24px 0 4px;padding-left:12px;border-left:5px solid var(--gold)}
+p{font-size:14.5px;margin:9px 0}
+
+.steps{margin:12px 0}
+.st{display:flex;gap:14px;padding:6.5px 0;border-bottom:1px dashed #d4ded6}
+.st:last-child{border-bottom:none}
+.st .n{
+  flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--felt);color:var(--gold);
+  display:grid;place-items:center;font-weight:900;font-size:15px;font-family:"Noto Serif CJK JP",serif
+}
+.st .t{font-size:14.5px;padding-top:2px}
+.st .t b{color:var(--felt)}
+.key{display:inline-block;background:var(--felt);color:var(--gold);font-weight:700;padding:1px 9px;border-radius:6px;font-size:13.5px;margin:0 1px}
+
+.note{background:#fff7e0;border:1px solid #f0d98a;border-radius:12px;padding:13px 16px;margin:14px 0;font-size:13.5px;color:#6b5713;display:flex;gap:11px}
+.note .i{font-size:19px;flex-shrink:0}
+.note b{color:#8a6d12}
+
+.ok{background:#e7f7ee;border:1px solid #9adcb8;border-radius:12px;padding:12px 16px;margin:13px 0;font-size:14px;color:#1c6b3f;display:flex;gap:10px;align-items:center}
+.ok .i{font-size:19px}
+.ok b{color:#13633a}
+
+figure{margin:11px 0;text-align:center}
+figcaption{font-size:12px;color:#6a7a6f;margin-top:8px}
+
+.cards4{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.fcard{background:#fff;border:1px solid #e4ebe5;border-radius:14px;padding:16px 18px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.fcard .ic{font-size:26px}
+.fcard b{display:block;color:var(--felt);font-size:15.5px;margin:6px 0 3px}
+.fcard small{font-size:13px;color:#5b6b60;line-height:1.7}
+
+.qa{border-top:1px solid #e0e8e1;padding:9.5px 0}
+.qa:first-of-type{border-top:none}
+.qa .q{font-weight:900;color:var(--felt);font-size:15px}
+.qa .q .m{color:var(--gold-d);margin-right:6px;font-family:"Noto Serif CJK JP",serif}
+.qa .a{font-size:13.8px;color:#37483d;padding-left:22px;margin-top:3px}
+.qa .a .m{color:var(--gold-d);font-weight:700;margin-right:5px}
+
+.pagefoot{position:absolute;bottom:11mm;left:18mm;right:18mm;display:flex;justify-content:space-between;
+  font-size:11px;color:#9aa89f;border-top:1px solid #e4ebe5;padding-top:6px}
+.pagefoot .b{color:var(--gold-d);font-weight:700}
+
+.bigq{display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;margin:20px 0}
+</style>
+</head>
+<body>
+
+<!-- ===================== 表紙 ===================== -->
+<div class="page cover">
+  <div class="suits">♠ ♥ ♦ ♣</div>
+  <div class="mk">Q</div>
+  <div class="brand">Bell Quads</div>
+  <div class="sub">POKER ROOM ・ KUSHIRO</div>
+  <h1>アプリの つかいかたガイド</h1>
+  <div class="tag">マイル・チケット・お会計を、スマホでかんたんに。</div>
+  <div class="welcome">ようこそ、Bell Quads へ。</div>
+  <div class="foot">静寂の駆け引き、ゴールドの夜へ。</div>
+</div>
+
+<!-- ===================== 1 できること ===================== -->
+<div class="page">
+  <span class="eyebrow">はじめに</span>
+  <div class="ptitle serif">アプリでできること</div>
+  <p class="lead">Bell Quads のアプリ（マイページ）を使うと、来店がもっと便利になります。スマホがあれば、登録もお会計もスムーズです。</p>
+
+  <div class="cards4">
+    <div class="fcard"><div class="ic">⭐</div><b>マイルをためる・つかう</b><small>プレイやお会計でポイント（マイル）がたまり、次回のお支払いに使えます。</small></div>
+    <div class="fcard"><div class="ic">📲</div><b>QRで入店</b><small>マイページのQRコードを見せるだけ。受付がスムーズ。</small></div>
+    <div class="fcard"><div class="ic">🎟️</div><b>チケットで参加</b><small>事前に買ったチケットで、イベントにサッと参加できます。</small></div>
+    <div class="fcard"><div class="ic">🏆</div><b>順位を確認</b><small>毎月のランキングで、自分の順位やポイントが見られます。</small></div>
+  </div>
+
+  <h2 class="sub">使いはじめは、たったの3ステップ</h2>
+  <div class="steps">
+    <div class="st"><span class="n">1</span><div class="t"><b>会員登録</b>… お名前と、自分で決める4桁の番号（PIN）だけ。（次のページ）</div></div>
+    <div class="st"><span class="n">2</span><div class="t"><b>マイページを開く</b>… マイルやお会計がひと目で分かります。</div></div>
+    <div class="st"><span class="n">3</span><div class="t"><b>お店でQRを見せる</b>… 受付完了。あとはゲームを楽しむだけ。</div></div>
+  </div>
+
+  <div class="note"><span class="i">🔑</span><div><b>PIN（ピン）って？</b> ログインに使う、自分だけの<b>4桁のあいことば</b>です。キャッシュカードの暗証番号と同じイメージ。登録のときに決めて、忘れないようにしましょう。</div></div>
+
+  <div class="pagefoot"><span class="b">♠ Bell Quads</span><span>アプリ つかいかたガイド</span><span>1</span></div>
+</div>
+
+<!-- ===================== 2 登録＆ログイン ===================== -->
+<div class="page">
+  <span class="eyebrow">STEP 1</span>
+  <div class="ptitle serif"><span class="step">1</span>会員登録＆ログイン</div>
+  <p class="lead">初めての方は、まず会員登録をしましょう。入力するのは<b>お名前</b>と<b>4桁のPIN</b>だけ。1分で終わります。</p>
+
+  <h2 class="sub">はじめての方（会員登録）</h2>
+  <div class="steps">
+    <div class="st"><span class="n">1</span><div class="t">アプリを開いて<span class="key">はじめての方（新規登録）</span>を押す。</div></div>
+    <div class="st"><span class="n">2</span><div class="t"><b>お名前</b>を入れる。</div></div>
+    <div class="st"><span class="n">3</span><div class="t">自分で決めた<b>4桁のPIN</b>を入れる。</div></div>
+    <div class="st"><span class="n">4</span><div class="t"><span class="key">登録してはじめる</span>を押せば完了！</div></div>
+  </div>
+
+  <h2 class="sub">2回目からのログイン</h2>
+  <div class="steps">
+    <div class="st"><span class="n">1</span><div class="t"><b>お名前</b>と、登録した<b>PIN</b>を入れる。</div></div>
+    <div class="st"><span class="n">2</span><div class="t"><span class="key">ログイン</span>を押すと、マイページが開きます。</div></div>
+  </div>
+
+  <div class="note"><span class="i">📝</span><div><b>PINは大切に。</b> 毎回ログインに使います。忘れてしまったときは、スタッフにお声がけください。</div></div>
+  <div class="ok"><span class="i">✅</span><div><b>これでOK！</b> 名前とマイル残高が出たら、登録・ログイン成功です。</div></div>
+
+  <div class="pagefoot"><span class="b">♠ Bell Quads</span><span>アプリ つかいかたガイド</span><span>2</span></div>
+</div>
+
+<!-- ===================== 3 マイページ ===================== -->
+<div class="page">
+  <span class="eyebrow">STEP 2</span>
+  <div class="ptitle serif"><span class="step">2</span>マイページの見かた</div>
+  <p class="lead">ログインすると出てくる、あなた専用の画面です。下の番号と見くらべてみてください。</p>
+
+  <figure>
+    <svg viewBox="0 0 340 560" width="248" xmlns="http://www.w3.org/2000/svg" font-family="Noto Sans CJK JP, sans-serif">
+      <rect width="340" height="560" rx="24" fill="#0f3320"/>
+      <text x="20" y="36" font-size="12" letter-spacing="2" fill="#bcd3c4">MEMBER — あなたのお名前</text>
+      <rect x="16" y="48" width="308" height="66" rx="14" fill="#143d27" stroke="#f4d03f"/>
+      <text x="32" y="74" font-size="12" fill="#bcd3c4">有効マイル残高　①</text>
+      <text x="308" y="98" font-size="26" font-weight="900" fill="#f4d03f" text-anchor="end" font-family="Noto Serif CJK JP, serif">1,000 pt</text>
+      <rect x="16" y="124" width="308" height="40" rx="11" fill="#2a2410" stroke="#cda82b"/>
+      <text x="32" y="149" font-size="12" fill="#f4d03f">👑 プラチナパス　②（お持ちの方のみ）</text>
+      <rect x="16" y="174" width="308" height="52" rx="12" fill="#102e1d" stroke="#2c7a4e"/>
+      <text x="32" y="197" font-size="12" fill="#bcd3c4">🏆 今月のランキング　③</text>
+      <text x="32" y="216" font-size="13" fill="#fdfaf0">5位 ／ 累計 320 BQRP</text>
+      <rect x="16" y="236" width="308" height="56" rx="13" fill="#143d27" stroke="#2c7a4e"/>
+      <text x="32" y="260" font-size="12" fill="#bcd3c4">♣ ただいまのお会計　④</text>
+      <text x="308" y="282" font-size="18" font-weight="900" fill="#fdfaf0" text-anchor="end" font-family="Noto Serif CJK JP, serif">¥1,500</text>
+      <rect x="16" y="302" width="308" height="44" rx="12" fill="#1a472a" stroke="#f4d03f"/>
+      <text x="170" y="330" font-size="13" font-weight="700" fill="#f4d03f" text-anchor="middle">🎟 チケットで参加　⑤</text>
+      <rect x="120" y="360" width="100" height="100" rx="10" fill="#fdfaf0"/>
+      <g fill="#0a2417">
+        <rect x="132" y="372" width="24" height="24"/><rect x="184" y="372" width="24" height="24"/><rect x="132" y="424" width="24" height="24"/>
+        <rect x="164" y="404" width="12" height="12"/><rect x="190" y="428" width="12" height="12"/><rect x="170" y="440" width="10" height="10"/>
+      </g>
+      <text x="170" y="478" font-size="12" fill="#bcd3c4" text-anchor="middle">店頭でこのQRを見せる　⑥</text>
+      <rect x="16" y="500" width="148" height="38" rx="11" fill="#143d27" stroke="#2c7a4e"/><text x="90" y="524" font-size="12" fill="#bcd3c4" text-anchor="middle">更新</text>
+      <rect x="176" y="500" width="148" height="38" rx="11" fill="#143d27" stroke="#2c7a4e"/><text x="250" y="524" font-size="12" fill="#bcd3c4" text-anchor="middle">ログアウト</text>
+    </svg>
+    <figcaption>あなたのマイページ。番号は下の説明とつながっています。</figcaption>
+  </figure>
+
+  <div class="steps">
+    <div class="st"><span class="n">1</span><div class="t"><b>有効マイル残高</b>… 今つかえるマイル。お会計で使えます。</div></div>
+    <div class="st"><span class="n">2</span><div class="t"><b>プラチナパス</b>… お持ちの方は、お会計をマイルだけでお支払いできます。</div></div>
+    <div class="st"><span class="n">3</span><div class="t"><b>今月のランキング</b>… あなたの順位と累計ポイント。</div></div>
+    <div class="st"><span class="n">4</span><div class="t"><b>ただいまのお会計</b>… プレイ中の合計。精算するとリセットされます。</div></div>
+    <div class="st"><span class="n">5</span><div class="t"><b>チケットで参加</b>… チケットでイベントに参加（→4ページ）。</div></div>
+    <div class="st"><span class="n">6</span><div class="t"><b>QRコード</b>… 入店のとき、これをスタッフに見せます（→次ページ）。</div></div>
+  </div>
+
+  <div class="pagefoot"><span class="b">♠ Bell Quads</span><span>アプリ つかいかたガイド</span><span>3</span></div>
+</div>
+
+<!-- ===================== 4 入店＆マイル ===================== -->
+<div class="page">
+  <span class="eyebrow">STEP 3</span>
+  <div class="ptitle serif"><span class="step">3</span>お店での使い方</div>
+  <p class="lead">来店したら、マイページのQRコードを見せるだけ。あとはゲームを楽しんで、お会計でマイルを使えます。</p>
+
+  <h2 class="sub">入店：QRコードを見せる</h2>
+  <figure>
+    <svg viewBox="0 0 560 150" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Noto Sans CJK JP, sans-serif">
+      <!-- phone -->
+      <rect x="20" y="20" width="86" height="110" rx="12" fill="#0f3320"/>
+      <rect x="38" y="42" width="50" height="50" rx="6" fill="#fdfaf0"/>
+      <g fill="#0a2417"><rect x="46" y="50" width="12" height="12"/><rect x="68" y="50" width="12" height="12"/><rect x="46" y="72" width="12" height="12"/><rect x="62" y="66" width="8" height="8"/></g>
+      <text x="63" y="112" font-size="9" fill="#bcd3c4" text-anchor="middle">マイページQR</text>
+      <text x="150" y="80" font-size="24" fill="#cda82b" text-anchor="middle">→</text>
+      <!-- staff -->
+      <circle cx="230" cy="60" r="26" fill="#e0a93f"/><text x="230" y="68" font-size="22" text-anchor="middle">🧑‍💼</text>
+      <text x="230" y="112" font-size="10" fill="#37483d" text-anchor="middle">スタッフが読み取り</text>
+      <text x="320" y="80" font-size="24" fill="#cda82b" text-anchor="middle">→</text>
+      <!-- table -->
+      <ellipse cx="420" cy="60" rx="46" ry="26" fill="#1a472a"/><text x="420" y="68" font-size="22" text-anchor="middle">🃏</text>
+      <text x="420" y="112" font-size="10" fill="#37483d" text-anchor="middle">席にご案内</text>
+      <text x="500" y="80" font-size="24" fill="#3ec97a" text-anchor="middle">✓</text>
+      <text x="528" y="66" font-size="11" fill="#13633a" text-anchor="middle">受付</text>
+      <text x="528" y="80" font-size="11" fill="#13633a" text-anchor="middle">完了</text>
+    </svg>
+    <figcaption>QRを見せる → スタッフが読み取る → 席へご案内。これだけです。</figcaption>
+  </figure>
+
+  <h2 class="sub">マイル：ためる・つかう</h2>
+  <div class="bigq">
+    <div style="text-align:center"><div style="font-size:34px">⭐</div><b style="color:var(--felt)">ためる</b><div style="font-size:13px;color:#5b6b60;max-width:150px">プレイやお会計でマイルがたまります</div></div>
+    <div style="font-size:26px;color:var(--gold-d)">→</div>
+    <div style="text-align:center"><div style="font-size:34px">💳</div><b style="color:var(--felt)">つかう</b><div style="font-size:13px;color:#5b6b60;max-width:160px">お会計のとき、お金のかわりに使えます</div></div>
+  </div>
+  <div class="steps">
+    <div class="st"><span class="n">1</span><div class="t">お会計のとき、<b>「マイルを使いたい」</b>とスタッフにお伝えください。</div></div>
+    <div class="st"><span class="n">2</span><div class="t">使ったぶんだけお会計から引かれ、<b>残りを現金</b>でお支払い。</div></div>
+  </div>
+  <div class="note"><span class="i">⏳</span><div><b>マイルの有効期限：</b> ためたマイルは、古いものからおよそ<b>180日</b>で期限が切れます。こまめに使うのがおすすめです。（期限はマイページでご確認ください）</div></div>
+
+  <div class="pagefoot"><span class="b">♠ Bell Quads</span><span>アプリ つかいかたガイド</span><span>4</span></div>
+</div>
+
+<!-- ===================== 5 チケット ===================== -->
+<div class="page">
+  <span class="eyebrow">便利な機能</span>
+  <div class="ptitle serif">🎟 チケットで参加する</div>
+  <p class="lead">あらかじめチケットをお持ちの方は、お金を出さずにイベントに参加できます。チップはスタッフがお渡しします。</p>
+
+  <figure>
+    <svg viewBox="0 0 560 130" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Noto Sans CJK JP, sans-serif">
+      <rect x="14" y="24" width="150" height="82" rx="12" fill="#fbfaf4" stroke="#cda82b"/>
+      <text x="89" y="56" font-size="13" font-weight="700" fill="#1a472a" text-anchor="middle">① 参加内容を選ぶ</text>
+      <text x="89" y="78" font-size="11" fill="#5b6b60" text-anchor="middle">イベント・枚数</text>
+      <text x="186" y="72" font-size="22" fill="#cda82b" text-anchor="middle">→</text>
+      <rect x="208" y="24" width="150" height="82" rx="12" fill="#fbfaf4" stroke="#cda82b"/>
+      <text x="283" y="56" font-size="13" font-weight="700" fill="#1a472a" text-anchor="middle">② チケットを使う</text>
+      <text x="283" y="78" font-size="11" fill="#5b6b60" text-anchor="middle">ボタンを押すだけ</text>
+      <text x="380" y="72" font-size="22" fill="#cda82b" text-anchor="middle">→</text>
+      <rect x="402" y="24" width="150" height="82" rx="12" fill="#1a472a"/>
+      <text x="477" y="56" font-size="13" font-weight="700" fill="#f4d03f" text-anchor="middle">③ チップを受取り</text>
+      <text x="477" y="78" font-size="11" fill="#bcd3c4" text-anchor="middle">スタッフが手渡し</text>
+    </svg>
+    <figcaption>マイページの「チケットで参加」から、3ステップで参加できます。</figcaption>
+  </figure>
+
+  <div class="steps">
+    <div class="st"><span class="n">1</span><div class="t">マイページで<span class="key">🎟 チケットで参加</span>を押す。</div></div>
+    <div class="st"><span class="n">2</span><div class="t">参加したい<b>イベント</b>と、使う<b>チケットの種類・枚数</b>を選ぶ。</div></div>
+    <div class="st"><span class="n">3</span><div class="t"><span class="key">この内容でチケットを使う</span>を押す。</div></div>
+    <div class="st"><span class="n">4</span><div class="t">スタッフから<b>チップを受け取って</b>、席へどうぞ。</div></div>
+  </div>
+
+  <h2 class="sub">チケットが足りないときは</h2>
+  <div class="steps">
+    <div class="st"><span class="n">A</span><div class="t"><span class="key">不足分を現金で参加</span>… 足りないぶんを現金で払って参加できます。</div></div>
+    <div class="st"><span class="n">B</span><div class="t"><span class="key">シングルで参加</span>… 今ある手持ちのチケットだけで参加します。</div></div>
+  </div>
+  <div class="note"><span class="i">🎫</span><div><b>持っているチケットを確認したい：</b> マイページの<b>「チケットの履歴」</b>で、残り枚数や使った記録が見られます。</div></div>
+
+  <div class="pagefoot"><span class="b">♠ Bell Quads</span><span>アプリ つかいかたガイド</span><span>5</span></div>
+</div>
+
+<!-- ===================== 6 公式サイト ===================== -->
+<div class="page">
+  <span class="eyebrow">もっと楽しむ</span>
+  <div class="ptitle serif">🖥 公式サイトでできること</div>
+  <p class="lead">お店の公式ホームページでは、イベントの予定や料金、アクセスなどが見られます。来店前のチェックに便利です。</p>
+
+  <div class="cards4">
+    <div class="fcard"><div class="ic">📅</div><b>スケジュールカレンダー</b><small>その日にどんなトーナメントやイベントがあるか、ひと目で分かります。気になる日をタップすると詳細も。</small></div>
+    <div class="fcard"><div class="ic">🏆</div><b>マンスリーランキング</b><small>今月のトップランカーをチェック。あなたの順位はマイページから。</small></div>
+    <div class="fcard"><div class="ic">💴</div><b>料金・システム</b><small>参加費やお店のルールをわかりやすく掲載。はじめての方も安心。</small></div>
+    <div class="fcard"><div class="ic">📍</div><b>アクセス・系列店</b><small>お店の場所や行き方、系列店の情報がのっています。</small></div>
+  </div>
+
+  <h2 class="sub">「はじめての方へ」もチェック</h2>
+  <p>公式サイトには、初めての方向けの案内や店内の写真（スライドショー）もあります。雰囲気を知ってから来たい方は、のぞいてみてください。</p>
+
+  <div class="note"><span class="i">💡</span><div><b>マイページへの入口も：</b> 公式サイトの「マイルとチケットを、いつでも確認」からも、アプリのマイページにアクセスできます。</div></div>
+
+  <div class="pagefoot"><span class="b">♠ Bell Quads</span><span>アプリ つかいかたガイド</span><span>6</span></div>
+</div>
+
+<!-- ===================== 7 Q&A ===================== -->
+<div class="page">
+  <span class="eyebrow">こまったときは</span>
+  <div class="ptitle serif">よくある質問</div>
+
+  <div style="margin-top:16px">
+  <div class="qa"><div class="q"><span class="m">Q.</span>PIN（4桁の番号）を忘れてしまいました。</div>
+  <div class="a"><span class="m">A.</span>ご来店の際に、スタッフへお声がけください。本人確認のうえ対応いたします。</div></div>
+
+  <div class="qa"><div class="q"><span class="m">Q.</span>マイルに有効期限はありますか？</div>
+  <div class="a"><span class="m">A.</span>はい。ためたマイルは、古いものからおよそ180日で期限が切れます。残高と期限はマイページでご確認いただけます。</div></div>
+
+  <div class="qa"><div class="q"><span class="m">Q.</span>QRコードが表示されません。</div>
+  <div class="a"><span class="m">A.</span>一度ログアウトして入り直すか、ページを更新（「更新」ボタン）してみてください。それでも出ないときはスタッフへ。</div></div>
+
+  <div class="qa"><div class="q"><span class="m">Q.</span>マイルとチケットのちがいは？</div>
+  <div class="a"><span class="m">A.</span>マイルは「お会計に使えるポイント」、チケットは「イベントに参加できる前売り券」です。どちらもマイページで確認できます。</div></div>
+
+  <div class="qa"><div class="q"><span class="m">Q.</span>お会計はどうやって支払いますか？</div>
+  <div class="a"><span class="m">A.</span>お帰りの際、スタッフが精算します。マイルを使いたいときはその場でお伝えください。残りは現金でお支払いいただけます。</div></div>
+
+  <div class="qa"><div class="q"><span class="m">Q.</span>プラチナパスとは何ですか？</div>
+  <div class="a"><span class="m">A.</span>特別な特典で、お持ちの方はお会計をマイルだけでお支払いできます。お持ちでない場合は表示されません。</div></div>
+  </div>
+
+  <h2 class="sub">お問い合わせ</h2>
+  <p>ご不明な点は、店内スタッフまでお気軽にお声がけください。公式サイトの<b>「お問い合わせ・ご質問」</b>からもご連絡いただけます。</p>
+
+  <div style="text-align:center;margin-top:4px;padding:11px;background:var(--felt-d);border-radius:16px;color:var(--cream)">
+    <div style="font-size:20px;color:var(--gold)">♠ ♥ ♦ ♣</div>
+    <div class="serif" style="font-size:21px;font-weight:900;margin:3px 0;color:#fff">またのご来店を、<br>心よりお待ちしております。</div>
+    <div style="font-size:13px;color:var(--dim);letter-spacing:.1em">Bell Quads ・ 静寂の駆け引き、ゴールドの夜へ。</div>
+  </div>
+
+  <div class="pagefoot"><span class="b">♠ Bell Quads</span><span>アプリ つかいかたガイド</span><span>7</span></div>
+</div>
+
+</body>
+</html>

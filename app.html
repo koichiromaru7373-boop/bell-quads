@@ -890,7 +890,7 @@ input::placeholder{color:#7fa28d}
 /* ===== Supabase 設定 ===== */
 const SUPABASE_URL      = "https://dnnctulubrawypwgwgdo.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
-const MASTER_PIN        = "2020";   // スタッフ入室PIN（共通）
+const MASTER_PIN        = "202046";   // スタッフ入室PIN（共通）
 const ADMIN_PIN         = "7777";     // ← 管理者ページ専用PIN（別途・変更してください）
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1112,7 +1112,7 @@ async function loadHist(id){
     const {data,error}=await db.from("history").select("*").eq("user_id",id).order("created_at",{ascending:false}).limit(8);
     if(error)throw error;
     if(!data||!data.length){w.innerHTML='<div class="empty">まだ履歴がありません</div>';return;}
-    w.innerHTML=data.map(h=>{const isIn=h.action==="チャージ";const d=new Date(h.created_at);
+    w.innerHTML=data.map(h=>{const isIn=(h.action==="チャージ"||h.action==="マイル付与");const d=new Date(h.created_at);
       const dt=(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
       return '<div class="hrow"><div style="display:flex;gap:.6rem;align-items:center"><span class="tag '+(isIn?"in":"out")+'">'+esc(h.action)+'</span><span class="tiny">'+dt+(h.staff_name?" ・"+esc(h.staff_name):"")+'</span></div><span class="amt '+(isIn?"in":"out")+'">'+(isIn?"+":"-")+yen(h.amount)+'</span></div>';
     }).join("");

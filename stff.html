@@ -329,6 +329,7 @@ function fillLiveForms(){
   document.getElementById("inRate").value=CLOCK.prize_rate??"";
   document.getElementById("inWarn").value=CLOCK.warn_seconds??60;
   document.getElementById("inTiers").value=formatTiers(CLOCK.prize_tiers);
+  document.getElementById("inAddon").value=CLOCK.addon_chips||"";   // 既定アドオン点
   fillThemeForm();
 }
 setInterval(renderLive,250);
@@ -371,7 +372,8 @@ async function addEntry(kind,chips){ if(!CLOCK)return;
   const {error}=await db.from("tournament_entries").insert({clock_id:CLOCK.id,kind,chips:chips||0,pool_in});
   if(error)liveMsg(error.message,true); else liveMsg(({entry:"新規参加",reentry:"リエントリー",addon:"アドオン",bust:"バスト"}[kind])+"を記録"); }
 document.getElementById("btnAddon").onclick=()=>{const v=parseInt(document.getElementById("inAddon").value,10);
-  if(isNaN(v)||v<=0){liveMsg("アドオンのチップ数を入力",true);return;}addEntry("addon",v);document.getElementById("inAddon").value="";};
+  if(isNaN(v)||v<=0){liveMsg("アドオンのチップ数を入力",true);return;}
+  addEntry("addon",v); patch({addon_chips:v}); };  // 既定点として記憶（欄は消さない）
 document.getElementById("btnBust").onclick=()=>addEntry("bust");
 document.getElementById("btnEntry").onclick=()=>addEntry("entry");
 document.getElementById("btnReentry").onclick=()=>addEntry("reentry");

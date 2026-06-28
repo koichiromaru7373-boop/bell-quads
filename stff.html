@@ -90,6 +90,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
       <button class="btn btn-ghost" id="btnNewClock">＋ 新規（構造から作成）</button>
       <button class="btn btn-ghost" id="btnDelClock">この回を削除</button>
     </div>
+    <button class="btn btn-ghost" id="btnActive" style="margin-top:.6rem">📲 app受付の対象にする</button>
+    <div class="tiny center" id="activeState" style="margin-top:.4rem"></div>
     <div class="linkrow">
       <a id="lnkDisplay" href="clock.html" target="_blank">▶ 表示画面を開く（TV用）</a>
     </div>
@@ -118,10 +120,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 
     <div class="panel">
       <div class="eyebrow">タイマー</div>
-      <div class="grid2">
-        <button class="btn btn-ok"   id="btnStart">▶ 開始</button>
-        <button class="btn btn-ghost" id="btnPause">⏸ ポーズ / 再開</button>
-      </div>
+      <button class="btn btn-ok" id="btnMain" style="font-size:1.1rem;padding:1rem">▶ 開始</button>
       <div class="grid2">
         <button class="btn btn-ghost" id="btnMinus">− 1分</button>
         <button class="btn btn-ghost" id="btnPlus">＋ 1分</button>
@@ -130,7 +129,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)}
         <button class="btn btn-ghost" id="btnPrev">◀ 前のレベル</button>
         <button class="btn btn-ghost" id="btnNext">次のレベル ▶</button>
       </div>
-      <button class="btn btn-ghost" id="btnReset" style="margin-top:.6rem">↺ 開始前に戻す（リセット）</button>
+      <button class="btn btn-ghost" id="btnReset" style="margin-top:.6rem">↺ 最初に戻す（リセット）</button>
+      <div class="tiny center" id="timerHint" style="margin-top:.5rem"></div>
     </div>
 
     <div class="panel">
@@ -310,6 +310,13 @@ function renderLive(){
   const sp=document.getElementById("liveState");
   sp.className="statep "+(st==="running"?"running":st==="paused"?"paused":st==="finished"?"finished":"");
   sp.textContent={idle:"開始前",running:"進行中",paused:"一時停止",finished:"終了"}[st]||st;
+  // メインボタンの文言（状態で切替）
+  const bm=document.getElementById("btnMain"),hint=document.getElementById("timerHint");
+  if(st==="running"){bm.textContent="⏸ 一時停止";bm.className="btn btn-ghost";if(hint)hint.textContent="";}
+  else if(st==="paused"){bm.textContent="▶ 再開（途中から）";bm.className="btn btn-ok";if(hint)hint.textContent="位置を保持して停止中。再開で続きから。";}
+  else if(st==="finished"){bm.textContent="▶ 最初から開始";bm.className="btn btn-ok";if(hint)hint.textContent="";}
+  else{bm.textContent="▶ 開始";bm.className="btn btn-ok";if(hint)hint.textContent="";}
+  bm.style.fontSize="1.1rem";bm.style.padding="1rem";
   const levels=CLOCK.levels||[];
   const D=deriveLevel(levels,elapsedMs(CLOCK,serverNow()));const lvl=D.lvl||{};
   let playNo=0;for(let i=0;i<=D.idx;i++){if(!levels[i].is_break)playNo++;}
@@ -320,6 +327,7 @@ function renderLive(){
   const avg=ag.remaining>0?Math.round(chips/ag.remaining):0;
   document.getElementById("roPlayers").textContent=ag.remaining+" / "+ag.entries;
   document.getElementById("roAvg").textContent=fmtNum(avg)+(lvl.bb?(" ("+Math.round(avg/lvl.bb)+"BB)"):"");
+  updateActiveState();
 }
 function fillLiveForms(){
   if(!CLOCK)return;
@@ -346,12 +354,18 @@ function setElapsedPayload(target){ const now=serverNow();
 function liveMsg(t,err){const m=document.getElementById("liveMsg");m.textContent=t;m.className="msg "+(err?"err":"ok");setTimeout(()=>{m.textContent="";},2500);}
 
 /* ===== タイマー操作 ===== */
-document.getElementById("btnStart").onclick=()=>patch({status:"running",started_at:new Date(serverNow()).toISOString(),paused_at:null,paused_accum_ms:0});
-document.getElementById("btnPause").onclick=()=>{
+/* ===== タイマー操作（1ボタンで 開始⇄一時停止⇄再開。止めても途中から） ===== */
+document.getElementById("btnMain").onclick=()=>{
   if(!CLOCK)return;
-  if(CLOCK.status==="running") patch({status:"paused",paused_at:new Date(serverNow()).toISOString()});
-  else if(CLOCK.status==="paused"){ const add=serverNow()-new Date(CLOCK.paused_at).getTime();
-    patch({status:"running",paused_at:null,paused_accum_ms:(CLOCK.paused_accum_ms||0)+add}); }
+  const st=CLOCK.status||"idle";
+  if(st==="running"){
+    patch({status:"paused",paused_at:new Date(serverNow()).toISOString()});           // 止める＝位置は保持
+  }else if(st==="paused"){
+    const add=serverNow()-new Date(CLOCK.paused_at).getTime();
+    patch({status:"running",paused_at:null,paused_accum_ms:(CLOCK.paused_accum_ms||0)+add}); // 途中から再開
+  }else{
+    patch({status:"running",started_at:new Date(serverNow()).toISOString(),paused_at:null,paused_accum_ms:0}); // 開始前/終了→最初から
+  }
 };
 document.getElementById("btnPlus").onclick=()=>{const e=elapsedMs(CLOCK,serverNow());patch(setElapsedPayload(Math.max(0,e-60000)));};   // 残り+1分=経過-1分
 document.getElementById("btnMinus").onclick=()=>{const e=elapsedMs(CLOCK,serverNow());patch(setElapsedPayload(e+60000));};
@@ -407,6 +421,20 @@ document.getElementById("btnDelClock").onclick=async()=>{
   await db.from("tournament_clocks").delete().eq("id",CLOCK.id); await loadClocks();
 };
 document.getElementById("clockPick").onchange=e=>selectClock(e.target.value);
+
+/* ===== app受付の対象（active）切替 ===== */
+document.getElementById("btnActive").onclick=async()=>{
+  if(!CLOCK)return;
+  await db.from("tournament_clocks").update({active:false}).neq("id",CLOCK.id); // 他を全部OFF
+  const {error}=await db.from("tournament_clocks").update({active:true}).eq("id",CLOCK.id);
+  if(error){liveMsg(error.message,true);return;}
+  CLOCK.active=true; updateActiveState(); liveMsg("このクロックをapp受付の対象にしました");
+};
+function updateActiveState(){
+  const el=document.getElementById("activeState"); if(!el)return;
+  if(CLOCK&&CLOCK.active){el.textContent="✓ app受付の対象（参加が自動でカウントされます）";el.style.color="var(--ok)";}
+  else{el.textContent="このクロックはapp受付の対象ではありません";el.style.color="var(--dim)";}
+}
 
 /* ======================================================
    ストラクチャー編集

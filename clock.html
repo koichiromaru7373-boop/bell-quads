@@ -245,6 +245,8 @@ function render(){
 }
 
 setInterval(render,250);
+/* Realtime取りこぼし対策：4秒ごとに状態を取り直して自己修復（停止/再開/人数が必ず追従する） */
+setInterval(()=>{ if(CLOCK) loadClock(CLOCK.id).then(render).catch(()=>{}); },4000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&CLOCK)loadClock(CLOCK.id).then(render);});
 
 async function initGate(){

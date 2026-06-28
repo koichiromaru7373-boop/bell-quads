@@ -341,6 +341,16 @@ function fillLiveForms(){
   fillThemeForm();
 }
 setInterval(renderLive,250);
+/* Realtime取りこぼし対策：4秒ごとにDBから取り直し（再開・人数・受付対象の状態が必ず追従する）。入力欄は触らない */
+setInterval(async()=>{ if(!CLOCK)return;
+  try{
+    const {data:c}=await db.from("tournament_clocks").select("*").eq("id",CLOCK.id).limit(1).single();
+    if(c)CLOCK=c;
+    const {data:e}=await db.from("tournament_entries").select("kind,chips,pool_in").eq("clock_id",CLOCK.id);
+    ENTRIES=e||[];
+    renderLive();
+  }catch(_){}
+},4000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&CLOCK)selectClock(CLOCK.id);});
 
 /* ===== 書き込みヘルパ ===== */
@@ -427,8 +437,11 @@ document.getElementById("btnActive").onclick=async()=>{
   if(!CLOCK)return;
   await db.from("tournament_clocks").update({active:false}).neq("id",CLOCK.id); // 他を全部OFF
   const {error}=await db.from("tournament_clocks").update({active:true}).eq("id",CLOCK.id);
-  if(error){liveMsg(error.message,true);return;}
-  CLOCK.active=true; updateActiveState(); liveMsg("このクロックをapp受付の対象にしました");
+  if(error){liveMsg("受付対象にできません："+error.message+"／ setup-16の実行とスキーマ再読込が必要かもしれません",true);return;}
+  // DBから実状態を取り直して反映（思い込みで表示しない）
+  const {data:c}=await db.from("tournament_clocks").select("*").eq("id",CLOCK.id).limit(1).single();
+  if(c)CLOCK=c;
+  updateActiveState(); liveMsg("このクロックをapp受付の対象にしました");
 };
 function updateActiveState(){
   const el=document.getElementById("activeState"); if(!el)return;

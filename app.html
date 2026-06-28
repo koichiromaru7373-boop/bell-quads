@@ -481,11 +481,8 @@ input::placeholder{color:#7fa28d}
           <div id="ringBuyInForm" style="display:none;border-top:1px solid var(--line);padding-top:1rem;margin-top:1rem">
             <div class="sumline big"><span id="ringPlayerName">—</span></div>
             
-            <label class="fld">入場BB</label>
-            <div style="display:flex;gap:.6rem">
-              <button class="btn" id="ringBB100" onclick="selectRingBB(100)" style="flex:1;background:rgba(212,175,55,.1);border:1px solid var(--line)">100BB<br><span style="font-size:.8rem">¥<span id="ringPrice100">2000</span></span></button>
-              <button class="btn" id="ringBB200" onclick="selectRingBB(200)" style="flex:1;background:rgba(212,175,55,.1);border:1px solid var(--line)">200BB<br><span style="font-size:.8rem">¥<span id="ringPrice200">3000</span></span></button>
-            </div>
+            <label class="fld">入場プラン</label>
+            <div id="ringPlanBtns" style="display:flex;gap:.6rem;flex-wrap:wrap"></div>
             
             <div class="btn-row" style="margin-top:1rem">
               <button class="btn btn-ghost" id="ringBuyInCancel">キャンセル</button>
@@ -498,12 +495,12 @@ input::placeholder{color:#7fa28d}
             <div id="ringBuyInHistory" style="margin-top:.8rem"><div class="empty">買い足しなし</div></div>
             
             <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--line)">
-              <label class="fld">最終BB入力</label>
-              <input id="ringFinalBB" type="number" inputmode="numeric" min="0" placeholder="例：400" />
+              <label class="fld">最終点数入力</label>
+              <input id="ringFinalPoints" type="number" inputmode="numeric" min="0" placeholder="例：1200" />
               
               <div class="panel pad" style="margin-top:.8rem;background:rgba(212,175,55,.05)">
                 <div class="sumline"><span>入場金合計</span><span class="g">¥<span id="ringTotalEntry">0</span></span></div>
-                <div class="sumline"><span>最終BB</span><span class="g"><span id="ringDisplayFinal">0</span>BB</span></div>
+                <div class="sumline"><span>最終点数</span><span class="g"><span id="ringDisplayFinal">0</span>点</span></div>
                 <div class="sumline big"><span>割引額</span><span class="g">¥<span id="ringDiscount">0</span></span></div>
                 <div class="sumline big"><span>リング代金</span><span class="g">¥<span id="ringFee">0</span></span></div>
                 <div class="sumline" style="color:var(--gold)"><span>マイル付与</span><span class="g"><span id="ringMilesGrant">0</span>pt</span></div>
@@ -765,13 +762,11 @@ input::placeholder{color:#7fa28d}
           </div>
 
           <div id="ringPriceFields">
-            <label class="fld" for="ring100Price">100BB：￥</label>
-            <input id="ring100Price" type="number" inputmode="numeric" min="0" value="2000" />
-            
-            <label class="fld" for="ring200Price">200BB：￥</label>
-            <input id="ring200Price" type="number" inputmode="numeric" min="0" value="3000" />
+            <label class="fld">入場プラン（点数＋料金）</label>
+            <div id="ringPlanEditor"></div>
+            <button class="btn btn-ghost" id="ringPlanAdd" style="margin-top:.4rem;font-size:.85rem">＋ プランを追加</button>
 
-            <label class="fld" for="ringDiscountRate">割引レート（100BBあたり）：￥</label>
+            <label class="fld" for="ringDiscountRate" style="margin-top:.8rem">割引レート（300点あたり）：￥</label>
             <input id="ringDiscountRate" type="number" inputmode="numeric" min="0" value="1000" />
           </div>
 
@@ -787,9 +782,9 @@ input::placeholder{color:#7fa28d}
         <div class="eyebrow">現在の設定</div>
         <div class="panel pad" style="margin-top:.8rem">
           <div class="sumline"><span>モード</span><span id="ringModeDisplay">本運用</span></div>
-          <div class="sumline"><span>100BB</span><span>￥<span id="ring100Display">2000</span></span></div>
-          <div class="sumline"><span>200BB</span><span>￥<span id="ring200Display">3000</span></span></div>
-          <div class="sumline"><span>割引（100BBあたり）</span><span>￥<span id="ringDiscountDisplay">1000</span></span></div>
+          <div class="sumline"><span>入場プラン</span></div>
+          <div id="ringPlansDisplay" style="margin:.2rem 0 .4rem"></div>
+          <div class="sumline"><span>割引（300点あたり）</span><span>￥<span id="ringDiscountDisplay">1000</span></span></div>
         </div>
       </div>
     </div>
@@ -1729,7 +1724,7 @@ async function loadOrders(){
       let name=esc(o.name);
       let note=o.staff_name?' <small>担当: '+esc(o.staff_name)+'</small>':'';
       if(o.is_ring){
-        note=' <small style="color:var(--gold)">リング精算 '+(o.ring_final_bb||0)+'BB</small>';
+        note=' <small style="color:var(--gold)">リング精算 '+(o.ring_final_points||o.ring_final_bb||0)+'点</small>';
         if(o.ring_bonus_miles>0) note+='<br><small style="color:var(--gold)">余剰マイル '+yen(o.ring_bonus_miles)+'pt（精算時付与）</small>';
       }else if(o.grant_miles&&o.grant_miles>0){
         note=' <small style="color:var(--gold)">'+esc(o.grant_kind||"付与")+'・精算時付与</small>';
@@ -2516,51 +2511,88 @@ window.przDel=przDel;
 
 
 /* ===== リング買い足し機能 ===== */
-let ringBuyIns = {}; // {user_id: [{bb: 100, fee: 2000}, ...]}
+let ringBuyIns = {}; // DBから取得した未清算買い足しのキャッシュ {tab_id: [{id, points, fee}, ...]}
 let selectedRingPlayer = null;
-let selectedRingBB = null;
+let selectedRingPlan = null;     // 選択中の入場プラン {points, fee}
+let selectedRingPlanIdx = -1;    // ハイライト用インデックス
+let ringRtChannel = null; // Realtime購読
+const DEFAULT_RING_PLANS = [{points:300,fee:2000},{points:600,fee:3000},{points:600,fee:0}];
 
 async function loadRingBuyInTab(){
   // リング設定を読み込み（Supabase）
   await fetchRingSettings();
 
-  // 価格を更新
-  document.getElementById("ringPrice100").textContent = ringSettings.price_100;
-  document.getElementById("ringPrice200").textContent = ringSettings.price_200;
-  
   // プレイ中のプレイヤーリストを取得
   const activeList = document.getElementById("ringPlayerList");
   try{
     const {data:tabs} = await db.from("tabs").select("*").eq("status","open").order("opened_at",{ascending:true});
     const players = tabs || [];
-    
-    activeList.innerHTML = players.map(p=>`
+
+    // 未清算の買い足しをDBから取得してキャッシュ化（メモリではなくDBが正）
+    ringBuyIns = {};
+    const ids = players.map(p=>p.id);
+    if(ids.length){
+      const {data:bis} = await db.from("ring_buyins")
+        .select("id,tab_id,points,fee")
+        .in("tab_id", ids).eq("settled", false)
+        .order("created_at",{ascending:true});
+      (bis||[]).forEach(b=>{
+        (ringBuyIns[b.tab_id] = ringBuyIns[b.tab_id] || []).push({id:b.id, points:b.points, fee:b.fee});
+      });
+    }
+
+    activeList.innerHTML = players.map(p=>{
+      const n = (ringBuyIns[p.id]||[]).length;
+      return `
       <button class="btn" onclick="openRingBuyIn('${p.id}')" style="padding:.8rem;text-align:center;background:rgba(212,175,55,.1);border:1px solid var(--line);border-radius:12px">
         <div style="font-weight:700">${esc(p.user_name)}</div>
         <div style="font-size:.75rem;color:var(--cream-dim);margin-top:.3rem">
-          ${(ringBuyIns[p.id]&&ringBuyIns[p.id].length)?ringBuyIns[p.id].length+'回':'買い足しなし'}
+          ${n?n+'回':'買い足しなし'}
         </div>
-      </button>
-    `).join("");
+      </button>`;
+    }).join("");
   }catch(e){
     console.error("プレイヤー取得エラー", e);
     activeList.innerHTML = '<div class="empty">プレイヤーを取得できませんでした</div>';
   }
-  
+
   renderRingBuyInHistory();
+  subscribeRingBuyIns();
 }
 window.loadRingBuyInTab = loadRingBuyInTab;
+
+// 複数端末で即時反映：ring_buyins の変更を購読し、リングタブ表示中だけ再描画
+function subscribeRingBuyIns(){
+  if(ringRtChannel) return; // 二重購読防止
+  try{
+    ringRtChannel = db.channel("ring_buyins_rt")
+      .on("postgres_changes", {event:"*", schema:"public", table:"ring_buyins"}, ()=>{
+        const panel = document.getElementById("panel-ring");
+        if(panel && panel.classList.contains("active")){ loadRingBuyInTab(); }
+      })
+      .subscribe();
+  }catch(e){ console.error("ring realtime購読エラー", e); }
+}
 
 async function openRingBuyIn(userId){
   try{
     const {data:tabs} = await db.from("tabs").select("*").eq("id", userId).single();
     if(!tabs){alert("プレイヤーが見つかりません");return;}
     selectedRingPlayer = tabs;
-    selectedRingBB = null;
+    selectedRingPlan = null;
+    selectedRingPlanIdx = -1;
     document.getElementById("ringPlayerName").textContent = selectedRingPlayer.user_name;
     document.getElementById("ringBuyInForm").style.display = "block";
-    document.getElementById("ringFinalBB").value = "";
+    // 入場プランのボタンを描画
+    renderRingPlanButtons();
+    // 清算プレビューを初期化
+    document.getElementById("ringFinalPoints").value = "";
+    document.getElementById("ringDisplayFinal").textContent = "0";
+    document.getElementById("ringDiscount").textContent = "0";
+    document.getElementById("ringFee").textContent = "0";
+    document.getElementById("ringMilesGrant").textContent = "0";
     setMsg(document.getElementById("ringSettleMsg"), "", "");
+    renderRingBuyInHistory();
   }catch(e){
     console.error("プレイヤー取得エラー", e);
     alert("プレイヤー情報の取得に失敗しました");
@@ -2568,29 +2600,72 @@ async function openRingBuyIn(userId){
 }
 window.openRingBuyIn = openRingBuyIn;
 
-function selectRingBB(bb){
-  selectedRingBB = bb;
-  document.getElementById("ringBB100").style.background = (bb===100)?"var(--gold)":"rgba(212,175,55,.1)";
-  document.getElementById("ringBB100").style.color = (bb===100)?"var(--ink)":"var(--cream)";
-  document.getElementById("ringBB200").style.background = (bb===200)?"var(--gold)":"rgba(212,175,55,.1)";
-  document.getElementById("ringBB200").style.color = (bb===200)?"var(--ink)":"var(--cream)";
+function ringPlans(){
+  const p = ringSettings && ringSettings.entry_plans;
+  return (Array.isArray(p) && p.length) ? p : DEFAULT_RING_PLANS;
 }
-window.selectRingBB = selectRingBB;
 
-document.getElementById("ringBuyInConfirm").addEventListener("click",()=>{
-  if(!selectedRingBB){alert("入場BB を選択してください");return;}
-  const fee = ringPriceFor(selectedRingBB);
-  if(!ringBuyIns[selectedRingPlayer.id]){ringBuyIns[selectedRingPlayer.id] = [];}
-  ringBuyIns[selectedRingPlayer.id].push({bb: selectedRingBB, fee: fee});
-  
-  document.getElementById("ringBuyInForm").style.display = "none";
+function renderRingPlanButtons(){
+  const wrap = document.getElementById("ringPlanBtns");
+  if(!wrap) return;
+  const plans = ringPlans();
+  wrap.innerHTML = plans.map((pl,i)=>{
+    const on = (i===selectedRingPlanIdx);
+    return `<button class="btn" onclick="selectRingPlan(${i})"
+      style="flex:1;min-width:46%;background:${on?'var(--gold)':'rgba(212,175,55,.1)'};color:${on?'var(--ink)':'var(--cream)'};border:1px solid var(--line)">
+      ${pl.points}点<br><span style="font-size:.8rem">${pl.fee>0?('¥'+yen(pl.fee)):'¥0（フリーイン）'}</span>
+    </button>`;
+  }).join("");
+}
+
+function selectRingPlan(i){
+  const plans = ringPlans();
+  if(i<0||i>=plans.length)return;
+  selectedRingPlanIdx = i;
+  selectedRingPlan = plans[i];
+  renderRingPlanButtons();
+}
+window.selectRingPlan = selectRingPlan;
+
+document.getElementById("ringBuyInConfirm").addEventListener("click",async ()=>{
+  if(!selectedRingPlayer){alert("プレイヤーが選択されていません");return;}
+  if(!selectedRingPlan){alert("入場プランを選択してください");return;}
+  const points = selectedRingPlan.points;
+  const fee = selectedRingPlan.fee;
+  const btn = document.getElementById("ringBuyInConfirm");
+  btn.disabled = true;
+  try{
+    const {data,error} = await db.from("ring_buyins").insert({
+      tab_id: selectedRingPlayer.id,
+      user_id: selectedRingPlayer.user_id || null,
+      points: points,
+      fee: fee,
+      staff_name: currentStaff
+    }).select("id,points,fee").single();
+    if(error)throw error;
+    (ringBuyIns[selectedRingPlayer.id] = ringBuyIns[selectedRingPlayer.id] || [])
+      .push({id:data.id, points:data.points, fee:data.fee});
+  }catch(e){
+    console.error("買い足し保存エラー", e);
+    alert("買い足しの保存に失敗しました");
+    btn.disabled = false;
+    return;
+  }
+  btn.disabled = false;
+
+  // 連続で買い足せるようフォームは開いたまま、プラン選択だけリセット
+  selectedRingPlan = null;
+  selectedRingPlanIdx = -1;
+  renderRingPlanButtons();
   renderRingBuyInHistory();
+  setMsg(document.getElementById("ringSettleMsg"), selectedRingPlayer.user_name + " に買い足しを記録しました ✓", "ok");
 });
 
 document.getElementById("ringBuyInCancel").addEventListener("click",()=>{
   document.getElementById("ringBuyInForm").style.display = "none";
   selectedRingPlayer = null;
-  selectedRingBB = null;
+  selectedRingPlan = null;
+  selectedRingPlanIdx = -1;
 });
 
 function renderRingBuyInHistory(){
@@ -2605,28 +2680,38 @@ function renderRingBuyInHistory(){
   document.getElementById("ringTotalEntry").textContent = totalEntry;
   
   document.getElementById("ringBuyInHistory").innerHTML = buyin.length
-    ? buyin.map((b,i)=>`<div style="padding:.5rem;background:rgba(212,175,55,.05);border-radius:8px;margin-bottom:.3rem;display:flex;justify-content:space-between;align-items:center">
-        <span>${b.bb}BB（¥${yen(b.fee)}）</span>
-        <button class="mini del" onclick="removeRingBuyIn('${selectedRingPlayer.id}',${i})">削除</button>
+    ? buyin.map((b)=>`<div style="padding:.5rem;background:rgba(212,175,55,.05);border-radius:8px;margin-bottom:.3rem;display:flex;justify-content:space-between;align-items:center">
+        <span>${b.points}点（¥${yen(b.fee)}）</span>
+        <button class="mini del" onclick="removeRingBuyIn('${b.id}')">削除</button>
       </div>`).join("")
     : '<div class="empty">買い足しなし</div>';
 }
 
-function removeRingBuyIn(userId, idx){
-  if(ringBuyIns[userId]){
-    ringBuyIns[userId].splice(idx, 1);
-    if(!ringBuyIns[userId].length){delete ringBuyIns[userId];}
+async function removeRingBuyIn(buyinId){
+  if(!confirm("この買い足しを削除しますか？"))return;
+  try{
+    const {error} = await db.from("ring_buyins").delete().eq("id", buyinId).eq("settled", false);
+    if(error)throw error;
+  }catch(e){
+    console.error("買い足し削除エラー", e);
+    alert("削除に失敗しました（清算済みは削除できません）");
+    return;
+  }
+  // ローカルキャッシュからも除去
+  if(selectedRingPlayer && ringBuyIns[selectedRingPlayer.id]){
+    ringBuyIns[selectedRingPlayer.id] = ringBuyIns[selectedRingPlayer.id].filter(b=>String(b.id)!==String(buyinId));
+    if(!ringBuyIns[selectedRingPlayer.id].length){delete ringBuyIns[selectedRingPlayer.id];}
   }
   renderRingBuyInHistory();
 }
 window.removeRingBuyIn = removeRingBuyIn;
 
-// 最終BB変更時の自動計算（設定レート参照）
-document.getElementById("ringFinalBB").addEventListener("input",()=>{
-  const finalBB = parseInt(document.getElementById("ringFinalBB").value,10) || 0;
+// 最終点数変更時の自動計算（設定レート参照）
+document.getElementById("ringFinalPoints").addEventListener("input",()=>{
+  const finalPoints = parseInt(document.getElementById("ringFinalPoints").value,10) || 0;
   const totalEntry = (ringBuyIns[selectedRingPlayer.id] || []).reduce((s,b)=>s+b.fee,0);
-  document.getElementById("ringDisplayFinal").textContent = finalBB;
-  const {discount,fee,bonusMiles} = ringCompute(totalEntry, finalBB);
+  document.getElementById("ringDisplayFinal").textContent = finalPoints;
+  const {discount,fee,bonusMiles} = ringCompute(totalEntry, finalPoints);
   document.getElementById("ringDiscount").textContent = discount;
   document.getElementById("ringFee").textContent = fee;
   document.getElementById("ringMilesGrant").textContent = bonusMiles;
@@ -2636,57 +2721,59 @@ document.getElementById("ringSettleConfirm").addEventListener("click",async ()=>
   if(!selectedRingPlayer){alert("プレイヤーが選択されていません");return;}
   const buyin = ringBuyIns[selectedRingPlayer.id];
   if(!buyin||!buyin.length){alert("買い足しがありません");return;}
-  const finalBB = parseInt(document.getElementById("ringFinalBB").value,10) || 0;
-  if(!finalBB){alert("最終BB を入力してください");return;}
-
-  const totalEntry = buyin.reduce((s,b)=>s+b.fee,0);
-  const {discount,fee,bonusMiles} = ringCompute(totalEntry, finalBB);
+  const finalPoints = parseInt(document.getElementById("ringFinalPoints").value,10) || 0;
+  if(!finalPoints){alert("最終点数を入力してください");return;}
 
   const playerName = selectedRingPlayer.user_name;
-  const tabId = selectedRingPlayer.id; // ← 選択プレイヤーの伝票（tabs.id）に正しく保存
+  const tabId = selectedRingPlayer.id;
+  const btn = document.getElementById("ringSettleConfirm");
+  btn.disabled = true;
 
+  let res;
   try{
-    const {error} = await db.from("tab_orders").insert({
-      tab_id: tabId,
-      name: playerName + " (リング " + finalBB + "BB)",
-      price: fee,
-      qty: 1,
-      staff_name: currentStaff,
-      is_ring: true,
-      ring_final_bb: finalBB,
-      ring_discount: discount,
-      ring_total_entry: totalEntry,
-      ring_bonus_miles: bonusMiles,
-      pool_value: 0,
-      charge: fee
+    const {data,error} = await db.rpc("settle_ring",{
+      p_tab_id: tabId,
+      p_final_points: finalPoints,
+      p_staff: currentStaff
     });
     if(error)throw error;
+    res = data; // {fee, discount, total_entry, bonus_miles, ...}
   }catch(e){
-    console.error("リング注文保存エラー", e);
-    alert("リング精算の保存に失敗しました");
+    console.error("リング清算エラー", e);
+    const msg = (e && e.message && e.message.indexOf("no_buyins")>=0)
+      ? "未清算の買い足しがありません（既に清算済みの可能性）"
+      : "リング清算に失敗しました";
+    alert(msg);
+    btn.disabled = false;
     return;
   }
 
-  // UI 更新
+  btn.disabled = false;
+
+  // UI 更新（DBが正：再取得で消える）
   delete ringBuyIns[tabId];
   document.getElementById("ringBuyInForm").style.display = "none";
   selectedRingPlayer = null;
-  selectedRingBB = null;
+  selectedRingPlan = null;
+  selectedRingPlanIdx = -1;
+  document.getElementById("ringFinalPoints").value = "";
   loadRingBuyInTab();
 
+  const fee = res ? res.fee : 0;
+  const bonusMiles = res ? res.bonus_miles : 0;
   setMsg(document.getElementById("ringSettleMsg"),
     playerName + " をカートに追加しました ✓（リング代金¥" + yen(fee) + (bonusMiles>0?" ／ 余剰マイル "+yen(bonusMiles)+"pt":"") + "）", "ok");
 });
 
 document.getElementById("ringSettleCancel").addEventListener("click",()=>{
   document.getElementById("ringBuyInForm").style.display = "none";
-  document.getElementById("ringFinalBB").value = "";
+  document.getElementById("ringFinalPoints").value = "";
   setMsg(document.getElementById("ringSettleMsg"), "", "");
 });
 
 
-/* ===== リング設定管理（Supabase 永続化・割引レート対応） ===== */
-let ringSettings = {mode:"normal", price_100:2000, price_200:3000, discount_per_100:1000};
+/* ===== リング設定管理（Supabase 永続化・入場プラン対応） ===== */
+let ringSettings = {mode:"normal", price_100:2000, price_200:3000, discount_per_100:1000, entry_plans:DEFAULT_RING_PLANS};
 
 async function fetchRingSettings(){
   try{
@@ -2694,15 +2781,15 @@ async function fetchRingSettings(){
     if(error)throw error;
     if(data&&data[0]){
       const r=data[0];
-      ringSettings={mode:r.mode||"normal",price_100:r.price_100??2000,price_200:r.price_200??3000,discount_per_100:r.discount_per_100??1000};
+      const plans=(Array.isArray(r.entry_plans)&&r.entry_plans.length)?r.entry_plans:DEFAULT_RING_PLANS;
+      ringSettings={mode:r.mode||"normal",price_100:r.price_100??2000,price_200:r.price_200??3000,discount_per_100:r.discount_per_100??1000,entry_plans:plans};
     }
   }catch(e){console.error("ring_settings取得エラー",e);}
   return ringSettings;
 }
-function ringPriceFor(bb){return bb===200?ringSettings.price_200:ringSettings.price_100;}
-function ringCompute(totalEntry, finalBB){
-  const rate=ringSettings.discount_per_100||0;
-  const discount=Math.floor((finalBB||0)/100)*rate;
+function ringCompute(totalEntry, finalPoints){
+  const rate=ringSettings.discount_per_100||0; // 300点あたりの割引額
+  const discount=Math.floor((finalPoints||0)/300)*rate;
   const fee=Math.max(0,totalEntry-discount);
   const bonusMiles=Math.max(0,discount-totalEntry); // 1円=1マイル
   return {discount,fee,bonusMiles};
@@ -2712,33 +2799,69 @@ async function loadRingSettings(){
   await fetchRingSettings();
   document.getElementById("ringModeTest").checked   = (ringSettings.mode==="test");
   document.getElementById("ringModeNormal").checked = (ringSettings.mode!=="test");
-  document.getElementById("ring100Price").value = ringSettings.price_100;
-  document.getElementById("ring200Price").value = ringSettings.price_200;
   const dEl=document.getElementById("ringDiscountRate");
   if(dEl)dEl.value=ringSettings.discount_per_100;
+  renderRingPlanEditor(ringPlans());
   updateRingDisplay();
 }
 
+// --- 入場プランエディタ（管理画面） ---
+function renderRingPlanEditor(plans){
+  const w=document.getElementById("ringPlanEditor");
+  if(!w)return;
+  w.innerHTML=(plans||[]).map((pl,i)=>`
+    <div class="ringPlanRow" style="display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem">
+      <input class="rpPoints" type="number" inputmode="numeric" min="0" value="${pl.points}" placeholder="点数" style="flex:1" />
+      <span style="color:var(--cream-dim)">点 / ¥</span>
+      <input class="rpFee" type="number" inputmode="numeric" min="0" value="${pl.fee}" placeholder="料金" style="flex:1" />
+      <button class="mini del" onclick="ringPlanRemove(${i})">削除</button>
+    </div>`).join("") || '<div class="empty">プランがありません</div>';
+}
+function readRingPlanEditor(){
+  const rows=document.querySelectorAll("#ringPlanEditor .ringPlanRow");
+  const plans=[];
+  rows.forEach(r=>{
+    const p=parseInt(r.querySelector(".rpPoints").value,10);
+    const f=parseInt(r.querySelector(".rpFee").value,10);
+    if(Number.isFinite(p)&&p>0&&Number.isFinite(f)&&f>=0)plans.push({points:p,fee:f});
+  });
+  return plans;
+}
+function ringPlanRemove(i){
+  const plans=readRingPlanEditor();
+  plans.splice(i,1);
+  renderRingPlanEditor(plans);
+}
+window.ringPlanRemove=ringPlanRemove;
+document.getElementById("ringPlanAdd").addEventListener("click",()=>{
+  const plans=readRingPlanEditor();
+  plans.push({points:300,fee:2000});
+  renderRingPlanEditor(plans);
+});
+
 function updateRingDisplay(){
   document.getElementById("ringModeDisplay").textContent=(ringSettings.mode==="test")?"テスト中":"本運用";
-  document.getElementById("ring100Display").textContent=ringSettings.price_100;
-  document.getElementById("ring200Display").textContent=ringSettings.price_200;
+  const pd=document.getElementById("ringPlansDisplay");
+  if(pd){
+    pd.innerHTML=ringPlans().map(pl=>`<div class="sumline" style="font-size:.9rem"><span>${pl.points}点</span><span>${pl.fee>0?('￥'+yen(pl.fee)):'￥0（フリーイン）'}</span></div>`).join("");
+  }
   const dd=document.getElementById("ringDiscountDisplay");
   if(dd)dd.textContent=ringSettings.discount_per_100;
 }
 
 document.getElementById("ringSave").addEventListener("click",async()=>{
   const mode = document.querySelector('input[name="ringMode"]:checked').value;
-  const p100 = parseInt(document.getElementById("ring100Price").value,10)||2000;
-  const p200 = parseInt(document.getElementById("ring200Price").value,10)||3000;
   const dEl=document.getElementById("ringDiscountRate");
   const drate=dEl?(parseInt(dEl.value,10)||0):ringSettings.discount_per_100;
+  const plans=readRingPlanEditor();
   const m=document.getElementById("ringMsg");
+  if(!plans.length){setMsg(m,"入場プランを1つ以上登録してください","err");return;}
   setMsg(m,"保存中…","");
   try{
-    const {error}=await db.from("ring_settings").upsert({id:1,mode,price_100:p100,price_200:p200,discount_per_100:drate,updated_at:new Date().toISOString()},{onConflict:"id"});
+    const {error}=await db.from("ring_settings").upsert({id:1,mode,discount_per_100:drate,entry_plans:plans,updated_at:new Date().toISOString()},{onConflict:"id"});
     if(error)throw error;
-    ringSettings={mode,price_100:p100,price_200:p200,discount_per_100:drate};
+    ringSettings={...ringSettings,mode,discount_per_100:drate,entry_plans:plans};
+    renderRingPlanEditor(plans);
     updateRingDisplay();
     setMsg(m,"保存しました ✓","ok");
   }catch(e){console.error(e);setMsg(m,"保存に失敗しました","err");}

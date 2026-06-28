@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f3320" />
+<title>Bell Quads — Clock 操作盤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--felt:#1a472a;--felt-d:#0f3320;--felt-l:#236b43;--line:#2c7a4e;
+  --gold:#f4d03f;--gold-d:#cda82b;--cream:#fdfaf0;--dim:#bcd3c4;--ink:#0a2417;--red:#e05b4a;--ok:#3ec97a;
+  --shadow:0 12px 34px rgba(0,0,0,.4);--r:16px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Noto Sans JP",system-ui,sans-serif;color:var(--cream);line-height:1.6;
+  background:radial-gradient(900px 500px at 50% -10%, #2a7d4e 0%, transparent 60%), var(--felt);min-height:100dvh;padding-bottom:3rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(15,51,32,.96);backdrop-filter:blur(8px);z-index:20}
+.brand{display:flex;align-items:center;gap:.6rem}
+.brand .mk{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(145deg,var(--gold),var(--gold-d));color:var(--ink);font-family:"Playfair Display",serif;font-weight:900}
+.brand b{font-family:"Playfair Display",serif}.brand small{display:block;font-size:.55rem;letter-spacing:.28em;color:var(--gold);font-weight:700}
+.wrap{max-width:760px;margin:0 auto;padding:1rem}
+.h{font-family:"Playfair Display",serif;font-weight:900}
+.eyebrow{font-size:.7rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.panel{background:rgba(0,0,0,.2);border:1px solid var(--line);border-radius:var(--r);padding:1rem;margin-top:1rem}
+label.fld{display:block;margin-top:.7rem;font-size:.82rem;color:var(--dim);font-weight:500}
+input,select,textarea{width:100%;margin-top:.3rem;padding:.7rem .8rem;border-radius:11px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--cream);font-size:1rem;font-family:inherit;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+.btn{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;border:none;cursor:pointer;font-weight:700;font-size:.95rem;padding:.8rem 1rem;border-radius:999px;font-family:inherit;transition:transform .08s}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:linear-gradient(145deg,var(--gold),var(--gold-d));color:var(--ink)}
+.btn-ghost{background:transparent;color:var(--cream);border:1.5px solid var(--line)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-red{background:var(--red);color:#fff}.btn-ok{background:var(--ok);color:#063}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.7rem}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem;margin-top:.7rem}
+.tabs{display:flex;gap:.4rem;margin-top:1rem}
+.tab{flex:1;padding:.6rem;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--dim);font-weight:700;cursor:pointer;font-family:inherit;font-size:.88rem}
+.tab.active{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.view{display:none}.view.active{display:block}
+.tiny{font-size:.78rem;color:var(--dim)}.center{text-align:center}
+.divider{height:1px;background:var(--line);margin:1rem 0}
+
+/* live state readout */
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+.ro{background:linear-gradient(135deg,var(--felt-l),var(--felt-d));border:1px solid var(--gold);border-radius:14px;padding:.8rem 1rem}
+.ro .lab{font-size:.62rem;letter-spacing:.18em;color:var(--gold);font-weight:700;text-transform:uppercase}
+.ro .v{font-family:"Playfair Display",serif;font-weight:900;font-size:1.7rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.ro .v.sm{font-size:1.1rem}
+.statep{display:inline-block;font-size:.66rem;letter-spacing:.12em;font-weight:700;padding:.15rem .6rem;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+.statep.running{color:#063;background:var(--ok);border-color:var(--ok)}
+.statep.paused{color:#fff;background:var(--red);border-color:var(--red)}
+.statep.finished{color:var(--ink);background:var(--gold)}
+
+/* structure editor table */
+.sttable{width:100%;border-collapse:collapse;margin-top:.6rem;font-size:.86rem}
+.sttable th{font-size:.62rem;letter-spacing:.1em;color:var(--gold);text-transform:uppercase;text-align:center;padding:.3rem .2rem;font-weight:700}
+.sttable td{padding:.15rem .12rem;text-align:center}
+.sttable input{margin:0;padding:.45rem .3rem;text-align:center;font-size:.9rem;border-radius:8px}
+.sttable td.ops{white-space:nowrap}
+.icbtn{background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--cream);border-radius:7px;width:26px;height:30px;cursor:pointer;font-size:.85rem}
+.icbtn:hover{border-color:var(--gold);color:var(--gold)}
+.brkrow td{background:rgba(244,208,63,.08)}
+.brkrow .blab{color:var(--gold);font-weight:700;letter-spacing:.1em}
+.chk{width:auto;margin:0}
+.msg{margin-top:.6rem;font-size:.85rem;min-height:1.1em}
+.msg.err{color:#ffb4a8}.msg.ok{color:var(--gold)}
+.summ{display:flex;gap:1.2rem;flex-wrap:wrap;margin-top:.7rem;font-size:.85rem}
+.summ b{color:var(--gold);font-family:"Playfair Display",serif;font-size:1.05rem}
+.swatch{display:flex;align-items:center;gap:.5rem;margin-top:.5rem}
+.swatch input[type=color]{width:46px;height:38px;padding:2px;border-radius:8px}
+.linkrow{display:flex;gap:.6rem;margin-top:.8rem;flex-wrap:wrap}
+.linkrow a{font-size:.82rem;color:var(--gold);text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><div class="mk">B</div><div><b>Bell Quads</b><small>CLOCK 操作盤</small></div></div>
+  <span class="tiny" id="syncState">…</span>
+</div>
+
+<div class="wrap">
+  <!-- クロック選択 -->
+  <div class="panel">
+    <div class="eyebrow">対象トーナメント</div>
+    <label class="fld" for="clockPick">操作するクロック</label>
+    <select id="clockPick"></select>
+    <div class="grid2">
+      <button class="btn btn-ghost" id="btnNewClock">＋ 新規（構造から作成）</button>
+      <button class="btn btn-ghost" id="btnDelClock">この回を削除</button>
+    </div>
+    <div class="linkrow">
+      <a id="lnkDisplay" href="clock.html" target="_blank">▶ 表示画面を開く（TV用）</a>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-v="live">ライブ操作</button>
+    <button class="tab" data-v="struct">ストラクチャー</button>
+    <button class="tab" data-v="theme">表示テーマ</button>
+  </div>
+
+  <!-- ============ ライブ操作 ============ -->
+  <div class="view active" id="v-live">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="eyebrow">現在の状態</div>
+        <span class="statep" id="liveState">—</span>
+      </div>
+      <div class="readout" style="margin-top:.6rem">
+        <div class="ro"><div class="lab">Level / 残り</div><div class="v" id="roLevel">– / --:--</div></div>
+        <div class="ro"><div class="lab">Blinds</div><div class="v sm" id="roBlind">–</div></div>
+        <div class="ro"><div class="lab">Players（残/総）</div><div class="v" id="roPlayers">– / –</div></div>
+        <div class="ro"><div class="lab">Avg Stack</div><div class="v sm" id="roAvg">–</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">タイマー</div>
+      <div class="grid2">
+        <button class="btn btn-ok"   id="btnStart">▶ 開始</button>
+        <button class="btn btn-ghost" id="btnPause">⏸ ポーズ / 再開</button>
+      </div>
+      <div class="grid2">
+        <button class="btn btn-ghost" id="btnMinus">− 1分</button>
+        <button class="btn btn-ghost" id="btnPlus">＋ 1分</button>
+      </div>
+      <div class="grid2">
+        <button class="btn btn-ghost" id="btnPrev">◀ 前のレベル</button>
+        <button class="btn btn-ghost" id="btnNext">次のレベル ▶</button>
+      </div>
+      <button class="btn btn-ghost" id="btnReset" style="margin-top:.6rem">↺ 開始前に戻す（リセット）</button>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">人数・チップ（スタッフ入力）</div>
+      <label class="fld" for="inStack">初期チップ（スターティング）</label>
+      <div class="grid2" style="grid-template-columns:1fr auto">
+        <input id="inStack" type="number" inputmode="numeric" placeholder="20000" />
+        <button class="btn btn-gold" id="btnStack" style="width:auto;padding-inline:1.4rem">反映</button>
+      </div>
+      <label class="fld" for="inAddon">アドオン（追加チップ）を1件記録</label>
+      <div class="grid2" style="grid-template-columns:1fr auto">
+        <input id="inAddon" type="number" inputmode="numeric" placeholder="10000" />
+        <button class="btn btn-gold" id="btnAddon" style="width:auto;padding-inline:1.4rem">＋ アドオン</button>
+      </div>
+      <button class="btn btn-red" id="btnBust" style="margin-top:.8rem">✗ バスト（残り −1）</button>
+      <div class="tiny center" style="margin-top:.6rem">新規・リエントリーは app.html の参加フローから自動記録されます。</div>
+      <details style="margin-top:.6rem">
+        <summary class="tiny">手動エントリー（app.html未連携時のテスト用）</summary>
+        <div class="grid2" style="margin-top:.5rem">
+          <button class="btn btn-ghost" id="btnEntry">＋ 新規参加</button>
+          <button class="btn btn-ghost" id="btnReentry">＋ リエントリー</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">賞金設定</div>
+      <div class="grid2">
+        <div><label class="fld" for="inBuyin">新規¥</label><input id="inBuyin" type="number" placeholder="5000"></div>
+        <div><label class="fld" for="inReentry">リエントリー¥</label><input id="inReentry" type="number" placeholder="3000"></div>
+      </div>
+      <div class="grid2">
+        <div><label class="fld" for="inRate">還元率%</label><input id="inRate" type="number" placeholder="100"></div>
+        <div><label class="fld" for="inWarn">予告秒</label><input id="inWarn" type="number" placeholder="60"></div>
+      </div>
+      <div class="tiny" style="margin-top:.5rem">プール = 参加ごとの実額 × 還元率。アドオンはチップのみでプールには含めません。app.html連携時は実額が記録されます。</div>
+      <label class="fld" for="inTiers">人数別配分（1行=「最小人数: 配分」）</label>
+      <textarea id="inTiers" rows="3" placeholder="10: 60,40&#10;20: 50,30,20"></textarea>
+      <button class="btn btn-gold" id="btnPrize" style="margin-top:.7rem">賞金設定を保存</button>
+      <div class="msg" id="liveMsg"></div>
+    </div>
+  </div>
+
+  <!-- ============ ストラクチャー ============ -->
+  <div class="view" id="v-struct">
+    <div class="panel">
+      <div class="eyebrow">テンプレ</div>
+      <label class="fld" for="stPick">保存済みストラクチャー</label>
+      <select id="stPick"></select>
+      <div class="grid3">
+        <button class="btn btn-ghost" id="stNew">＋ 新規</button>
+        <button class="btn btn-ghost" id="stDup">複製</button>
+        <button class="btn btn-ghost" id="stDel">削除</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="grid2">
+        <div><label class="fld" for="stName">構造名</label><input id="stName" placeholder="通常 20k スタート"></div>
+        <div><label class="fld" for="stStack">初期スタック</label><input id="stStack" type="number" placeholder="20000"></div>
+      </div>
+
+      <table class="sttable">
+        <thead><tr><th></th><th>SB</th><th>BB</th><th>Ante</th><th>分</th><th>休憩</th><th></th></tr></thead>
+        <tbody id="stRows"></tbody>
+      </table>
+      <div class="grid2" style="margin-top:.6rem">
+        <button class="btn btn-ghost" id="stAdd">＋ レベル追加</button>
+        <button class="btn btn-ghost" id="stBreak">＋ 休憩を追加</button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="eyebrow">等比オートフィル</div>
+      <div class="grid3">
+        <div><label class="fld" for="afFactor">倍率</label><input id="afFactor" type="number" step="0.05" value="1.5"></div>
+        <div><label class="fld" for="afCount">追加数</label><input id="afCount" type="number" value="6"></div>
+        <div><label class="fld" for="afMin">各分</label><input id="afMin" type="number" value="20"></div>
+      </div>
+      <button class="btn btn-ghost" id="afRun" style="margin-top:.6rem">最後のレベルから生成して追加</button>
+
+      <div class="summ" id="stSumm"></div>
+      <button class="btn btn-gold" id="stSave" style="margin-top:.9rem">保存（上書き）</button>
+      <button class="btn btn-ghost" id="stSaveNew" style="margin-top:.5rem">新規テンプレとして保存</button>
+      <div class="msg" id="stMsg"></div>
+    </div>
+  </div>
+
+  <!-- ============ 表示テーマ ============ -->
+  <div class="view" id="v-theme">
+    <div class="panel">
+      <div class="eyebrow">表示画面の見た目</div>
+      <div class="swatch"><input type="color" id="thAccent" value="#f4d03f"><label class="fld" style="margin:0">アクセント色（数字・ロゴ）</label></div>
+      <div class="swatch"><input type="color" id="thText" value="#fdfaf0"><label class="fld" style="margin:0">文字色</label></div>
+      <label class="fld" for="thBgType">背景タイプ</label>
+      <select id="thBgType"><option value="">フェルト（既定）</option><option value="color">単色</option><option value="gradient">グラデーション</option><option value="image">画像URL</option></select>
+      <div class="grid2">
+        <div><label class="fld" for="thBgFrom">色 / 開始色</label><input id="thBgFrom" placeholder="#0f3320"></div>
+        <div><label class="fld" for="thBgTo">終了色（グラデ）</label><input id="thBgTo" placeholder="#1a472a"></div>
+      </div>
+      <label class="fld" for="thBgUrl">背景画像URL</label>
+      <input id="thBgUrl" placeholder="https://… / Supabase Storage の公開URL">
+      <label class="fld" for="thOverlay">画像の暗幕（0〜1）</label>
+      <input id="thOverlay" type="number" step="0.05" min="0" max="1" value="0.35">
+      <button class="btn btn-gold" id="thSave" style="margin-top:.9rem">テーマを保存</button>
+      <div class="msg" id="thMsg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Supabase ===== */
+const SUPABASE_URL="https://dnnctulubrawypwgwgdo.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_B54zNDjXmwfxfBLfhpBuBQ_ZVwFtN1M";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+/* ===== 時刻オフセット ===== */
+let clockOffset=0;
+async function syncServerTime(){
+  try{const t0=Date.now();const {data}=await db.rpc("get_server_time");const t1=Date.now();
+    if(data){clockOffset=new Date(data).getTime()-(t0+(t1-t0)/2);} document.getElementById("syncState").textContent="server同期 ✓";}
+  catch(e){document.getElementById("syncState").textContent="local時計";}
+}
+const serverNow=()=>Date.now()+clockOffset;
+
+/* ===== 純関数（clock.htmlと同一ロジック） ===== */
+function elapsedMs(c,now){ if(!c||!c.started_at||c.status==="idle")return 0;
+  let e=now-new Date(c.started_at).getTime()-(c.paused_accum_ms||0);
+  if(c.status==="paused"&&c.paused_at)e-=(now-new Date(c.paused_at).getTime()); return Math.max(0,e);}
+function deriveLevel(levels,e){let acc=0;for(let i=0;i<levels.length;i++){const d=(levels[i].min||0)*60000;
+  if(e<acc+d)return{idx:i,lvl:levels[i],remainMs:acc+d-e,next:levels[i+1]||null};acc+=d;}
+  const l=levels.length-1;return{idx:l,lvl:levels[l]||null,remainMs:0,next:null,finished:true};}
+function levelStartMs(levels,k){let acc=0;for(let i=0;i<k&&i<levels.length;i++)acc+=(levels[i].min||0)*60000;return acc;}
+function aggEntries(rows){let entries=0,bust=0,addon=0,poolIn=0;for(const r of rows){
+  if(r.kind==="entry"||r.kind==="reentry"){entries++;poolIn+=(r.pool_in||0);}else if(r.kind==="bust")bust++;else if(r.kind==="addon"){addon+=(r.chips||0);poolIn+=(r.pool_in||0);}}
+  return{entries,remaining:Math.max(0,entries-bust),addonChips:addon,poolIn};}
+const fmtTime=ms=>{ms=Math.max(0,Math.round(ms/1000));return String(Math.floor(ms/60)).padStart(2,"0")+":"+String(ms%60).padStart(2,"0");};
+const fmtNum=n=>Number(n||0).toLocaleString("ja-JP");
+
+/* ===== tiers parse/format ===== */
+function parseTiers(text){return (text||"").split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{
+  const m=l.split(":");const min=parseInt(m[0],10)||0;const splits=(m[1]||"").split(",").map(s=>parseInt(s.trim(),10)).filter(n=>!isNaN(n));
+  return{min,splits};}).filter(t=>t.splits.length).sort((a,b)=>a.min-b.min);}
+function formatTiers(tiers){return (tiers||[]).map(t=>t.min+": "+(t.splits||[]).join(",")).join("\n");}
+
+/* ===== 状態 ===== */
+let CLOCK=null, ENTRIES=[], STRUCTS=[], rtC=null, rtE=null;
+
+async function loadClocks(keepId){
+  const {data}=await db.from("tournament_clocks").select("*").order("updated_at",{ascending:false});
+  const list=data||[];
+  const sel=document.getElementById("clockPick");
+  sel.innerHTML=list.map(c=>'<option value="'+c.id+'">'+(c.name||"無題")+'（'+c.status+'）</option>').join("");
+  const target=keepId&&list.find(c=>c.id===keepId)?keepId:(list[0]&&list[0].id);
+  if(target){sel.value=target; await selectClock(target);}
+  else {CLOCK=null;}
+}
+async function selectClock(id){
+  const {data:c}=await db.from("tournament_clocks").select("*").eq("id",id).limit(1).single();
+  CLOCK=c;
+  const {data:e}=await db.from("tournament_entries").select("kind,chips,pool_in").eq("clock_id",id);
+  ENTRIES=e||[];
+  document.getElementById("lnkDisplay").href="clock.html?id="+id;
+  fillLiveForms(); subscribe(id); renderLive();
+}
+function subscribe(id){
+  if(rtC)db.removeChannel(rtC); if(rtE)db.removeChannel(rtE);
+  rtC=db.channel("s_clk_"+id).on("postgres_changes",{event:"*",schema:"public",table:"tournament_clocks",filter:"id=eq."+id},
+    async()=>{const {data:c}=await db.from("tournament_clocks").select("*").eq("id",id).limit(1).single();CLOCK=c;renderLive();}).subscribe();
+  rtE=db.channel("s_ent_"+id).on("postgres_changes",{event:"*",schema:"public",table:"tournament_entries",filter:"clock_id=eq."+id},
+    async()=>{const {data:e}=await db.from("tournament_entries").select("kind,chips,pool_in").eq("clock_id",id);ENTRIES=e||[];renderLive();}).subscribe();
+}
+
+/* ===== ライブ描画 ===== */
+function renderLive(){
+  if(!CLOCK)return;
+  const st=CLOCK.status||"idle";
+  const sp=document.getElementById("liveState");
+  sp.className="statep "+(st==="running"?"running":st==="paused"?"paused":st==="finished"?"finished":"");
+  sp.textContent={idle:"開始前",running:"進行中",paused:"一時停止",finished:"終了"}[st]||st;
+  const levels=CLOCK.levels||[];
+  const D=deriveLevel(levels,elapsedMs(CLOCK,serverNow()));const lvl=D.lvl||{};
+  let playNo=0;for(let i=0;i<=D.idx;i++){if(!levels[i].is_break)playNo++;}
+  document.getElementById("roLevel").textContent=(lvl.is_break?"休憩":("Lv"+playNo))+" / "+fmtTime(D.remainMs);
+  document.getElementById("roBlind").textContent=lvl.is_break?"—":(fmtNum(lvl.sb)+" / "+fmtNum(lvl.bb)+(lvl.ante?" a"+fmtNum(lvl.ante):""));
+  const ag=aggEntries(ENTRIES);
+  const chips=ag.entries*(CLOCK.starting_stack||0)+ag.addonChips;
+  const avg=ag.remaining>0?Math.round(chips/ag.remaining):0;
+  document.getElementById("roPlayers").textContent=ag.remaining+" / "+ag.entries;
+  document.getElementById("roAvg").textContent=fmtNum(avg)+(lvl.bb?(" ("+Math.round(avg/lvl.bb)+"BB)"):"");
+}
+function fillLiveForms(){
+  if(!CLOCK)return;
+  document.getElementById("inStack").value=CLOCK.starting_stack||"";
+  document.getElementById("inBuyin").value=CLOCK.buyin||"";
+  document.getElementById("inReentry").value=CLOCK.reentry_fee||"";
+  document.getElementById("inRate").value=CLOCK.prize_rate??"";
+  document.getElementById("inWarn").value=CLOCK.warn_seconds??60;
+  document.getElementById("inTiers").value=formatTiers(CLOCK.prize_tiers);
+  fillThemeForm();
+}
+setInterval(renderLive,250);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&CLOCK)selectClock(CLOCK.id);});
+
+/* ===== 書き込みヘルパ ===== */
+async function patch(p){ if(!CLOCK)return; p.updated_at=new Date().toISOString();
+  const {error}=await db.from("tournament_clocks").update(p).eq("id",CLOCK.id);
+  if(error){liveMsg(error.message,true);return;} Object.assign(CLOCK,p); renderLive(); }
+function setElapsedPayload(target){ const now=serverNow();
+  let started=now-target-(CLOCK.paused_accum_ms||0);
+  if(CLOCK.status==="paused"&&CLOCK.paused_at)started-=(now-new Date(CLOCK.paused_at).getTime());
+  return {started_at:new Date(started).toISOString()}; }
+function liveMsg(t,err){const m=document.getElementById("liveMsg");m.textContent=t;m.className="msg "+(err?"err":"ok");setTimeout(()=>{m.textContent="";},2500);}
+
+/* ===== タイマー操作 ===== */
+document.getElementById("btnStart").onclick=()=>patch({status:"running",started_at:new Date(serverNow()).toISOString(),paused_at:null,paused_accum_ms:0});
+document.getElementById("btnPause").onclick=()=>{
+  if(!CLOCK)return;
+  if(CLOCK.status==="running") patch({status:"paused",paused_at:new Date(serverNow()).toISOString()});
+  else if(CLOCK.status==="paused"){ const add=serverNow()-new Date(CLOCK.paused_at).getTime();
+    patch({status:"running",paused_at:null,paused_accum_ms:(CLOCK.paused_accum_ms||0)+add}); }
+};
+document.getElementById("btnPlus").onclick=()=>{const e=elapsedMs(CLOCK,serverNow());patch(setElapsedPayload(Math.max(0,e-60000)));};   // 残り+1分=経過-1分
+document.getElementById("btnMinus").onclick=()=>{const e=elapsedMs(CLOCK,serverNow());patch(setElapsedPayload(e+60000));};
+document.getElementById("btnNext").onclick=()=>{const levels=CLOCK.levels||[];const D=deriveLevel(levels,elapsedMs(CLOCK,serverNow()));
+  const k=Math.min(D.idx+1,levels.length-1);patch(setElapsedPayload(levelStartMs(levels,k)));};
+document.getElementById("btnPrev").onclick=()=>{const levels=CLOCK.levels||[];const D=deriveLevel(levels,elapsedMs(CLOCK,serverNow()));
+  const k=Math.max(D.idx-1,0);patch(setElapsedPayload(levelStartMs(levels,k)));};
+document.getElementById("btnReset").onclick=()=>{ if(confirm("開始前の状態に戻します。よろしいですか？"))
+  patch({status:"idle",started_at:null,paused_at:null,paused_accum_ms:0}); };
+
+/* ===== 人数・チップ ===== */
+document.getElementById("btnStack").onclick=()=>{const v=parseInt(document.getElementById("inStack").value,10);
+  if(isNaN(v)||v<=0){liveMsg("初期チップを入力",true);return;}patch({starting_stack:v}).then(()=>liveMsg("初期チップを反映"));};
+async function addEntry(kind,chips){ if(!CLOCK)return;
+  let pool_in=0;
+  if(kind==="entry") pool_in=CLOCK.buyin||0;
+  else if(kind==="reentry") pool_in=CLOCK.reentry_fee||0; // アドオン/バストは0
+  const {error}=await db.from("tournament_entries").insert({clock_id:CLOCK.id,kind,chips:chips||0,pool_in});
+  if(error)liveMsg(error.message,true); else liveMsg(({entry:"新規参加",reentry:"リエントリー",addon:"アドオン",bust:"バスト"}[kind])+"を記録"); }
+document.getElementById("btnAddon").onclick=()=>{const v=parseInt(document.getElementById("inAddon").value,10);
+  if(isNaN(v)||v<=0){liveMsg("アドオンのチップ数を入力",true);return;}addEntry("addon",v);document.getElementById("inAddon").value="";};
+document.getElementById("btnBust").onclick=()=>addEntry("bust");
+document.getElementById("btnEntry").onclick=()=>addEntry("entry");
+document.getElementById("btnReentry").onclick=()=>addEntry("reentry");
+
+/* ===== 賞金 ===== */
+document.getElementById("btnPrize").onclick=()=>{
+  const buyin=parseInt(document.getElementById("inBuyin").value,10)||0;
+  const reentry=parseInt(document.getElementById("inReentry").value,10)||0;
+  const rate=parseInt(document.getElementById("inRate").value,10);
+  const warn=parseInt(document.getElementById("inWarn").value,10);
+  patch({buyin, reentry_fee:reentry, prize_rate:isNaN(rate)?100:rate, warn_seconds:isNaN(warn)?60:warn,
+    prize_tiers:parseTiers(document.getElementById("inTiers").value)}).then(()=>liveMsg("賞金設定を保存"));
+};
+
+/* ===== クロック作成/削除 ===== */
+document.getElementById("btnNewClock").onclick=async()=>{
+  if(!STRUCTS.length){alert("先にストラクチャーを作成してください");return;}
+  const opts=STRUCTS.map((s,i)=>i+": "+s.name).join("\n");
+  const pick=prompt("使う構造の番号を入力:\n"+opts,"0"); if(pick===null)return;
+  const s=STRUCTS[parseInt(pick,10)]; if(!s){alert("番号が不正");return;}
+  const name=prompt("トーナメント名","本日のトーナメント")||"本日のトーナメント";
+  const {data,error}=await db.from("tournament_clocks").insert({
+    name, structure_id:s.id, status:"idle", levels:s.levels, starting_stack:s.starting_stack,
+    buyin:0, prize_rate:100, prize_tiers:[], warn_seconds:60, theme:{}
+  }).select("id").limit(1).single();
+  if(error){alert(error.message);return;}
+  await loadClocks(data.id);
+};
+document.getElementById("btnDelClock").onclick=async()=>{
+  if(!CLOCK)return; if(!confirm("「"+CLOCK.name+"」を削除します（エントリー記録も消えます）"))return;
+  await db.from("tournament_clocks").delete().eq("id",CLOCK.id); await loadClocks();
+};
+document.getElementById("clockPick").onchange=e=>selectClock(e.target.value);
+
+/* ======================================================
+   ストラクチャー編集
+====================================================== */
+let stEditId=null, stLevels=[];
+async function loadStructs(keepId){
+  const {data}=await db.from("blind_structures").select("*").order("sort_order",{ascending:true});
+  STRUCTS=data||[];
+  const sel=document.getElementById("stPick");
+  sel.innerHTML='<option value="">— 選択 —</option>'+STRUCTS.map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join("");
+  if(keepId){sel.value=keepId;loadStructIntoEditor(keepId);}
+}
+function loadStructIntoEditor(id){
+  const s=STRUCTS.find(x=>x.id===id); if(!s){stEditId=null;return;}
+  stEditId=s.id; stLevels=JSON.parse(JSON.stringify(s.levels||[]));
+  document.getElementById("stName").value=s.name||"";
+  document.getElementById("stStack").value=s.starting_stack||"";
+  renderStRows();
+}
+document.getElementById("stPick").onchange=e=>{ if(e.target.value)loadStructIntoEditor(e.target.value); };
+
+function renderStRows(){
+  const tb=document.getElementById("stRows"); tb.innerHTML="";
+  let pno=0;
+  stLevels.forEach((lv,i)=>{
+    const tr=document.createElement("tr");
+    if(lv.is_break){ tr.className="brkrow";
+      tr.innerHTML='<td class="blab">休</td>'
+        +'<td colspan="3"><input data-i="'+i+'" data-k="label" value="'+(lv.label||"休憩")+'"></td>'
+        +'<td><input data-i="'+i+'" data-k="min" type="number" value="'+(lv.min||0)+'" style="width:54px"></td>'
+        +'<td><input class="chk" data-i="'+i+'" data-k="is_break" type="checkbox" checked></td>'
+        +rowOps(i);
+    }else{ pno++;
+      tr.innerHTML='<td class="tiny">'+pno+'</td>'
+        +'<td><input data-i="'+i+'" data-k="sb" type="number" value="'+(lv.sb||0)+'"></td>'
+        +'<td><input data-i="'+i+'" data-k="bb" type="number" value="'+(lv.bb||0)+'"></td>'
+        +'<td><input data-i="'+i+'" data-k="ante" type="number" value="'+(lv.ante||0)+'"></td>'
+        +'<td><input data-i="'+i+'" data-k="min" type="number" value="'+(lv.min||0)+'" style="width:54px"></td>'
+        +'<td><input class="chk" data-i="'+i+'" data-k="is_break" type="checkbox"></td>'
+        +rowOps(i);
+    }
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",onStEdit));
+  tb.querySelectorAll(".icbtn").forEach(b=>b.addEventListener("click",onStOp));
+  renderStSumm();
+}
+function rowOps(i){return '<td class="ops"><button class="icbtn" data-op="up" data-i="'+i+'">▲</button>'
+  +'<button class="icbtn" data-op="down" data-i="'+i+'">▼</button>'
+  +'<button class="icbtn" data-op="dup" data-i="'+i+'">⧉</button>'
+  +'<button class="icbtn" data-op="del" data-i="'+i+'">✕</button></td>';}
+function onStEdit(e){const i=+e.target.dataset.i,k=e.target.dataset.k;
+  if(k==="is_break"){stLevels[i].is_break=e.target.checked; renderStRows(); return;}
+  if(k==="label")stLevels[i].label=e.target.value; else stLevels[i][k]=parseInt(e.target.value,10)||0;
+  renderStSumm();}
+function onStOp(e){const i=+e.target.dataset.i,op=e.target.dataset.op;
+  if(op==="del")stLevels.splice(i,1);
+  else if(op==="dup")stLevels.splice(i+1,0,JSON.parse(JSON.stringify(stLevels[i])));
+  else if(op==="up"&&i>0){[stLevels[i-1],stLevels[i]]=[stLevels[i],stLevels[i-1]];}
+  else if(op==="down"&&i<stLevels.length-1){[stLevels[i+1],stLevels[i]]=[stLevels[i],stLevels[i+1]];}
+  renderStRows();}
+function renderStSumm(){
+  const total=stLevels.reduce((a,l)=>a+(l.min||0),0);
+  const plays=stLevels.filter(l=>!l.is_break).length;
+  const h=Math.floor(total/60),m=total%60;
+  document.getElementById("stSumm").innerHTML=
+    '<div>合計 <b>'+(h?h+"時間":"")+m+"分"+'</b></div>'
+    +'<div>レベル <b>'+plays+'</b></div>'
+    +'<div>休憩 <b>'+(stLevels.length-plays)+'</b></div>';
+}
+document.getElementById("stAdd").onclick=()=>{const last=[...stLevels].reverse().find(l=>!l.is_break)||{sb:100,bb:200,ante:0,min:20};
+  stLevels.push({sb:last.sb*2,bb:last.bb*2,ante:last.ante||0,min:last.min||20,is_break:false});renderStRows();};
+document.getElementById("stBreak").onclick=()=>{stLevels.push({sb:0,bb:0,ante:0,min:10,is_break:true,label:"休憩"});renderStRows();};
+document.getElementById("afRun").onclick=()=>{
+  const f=parseFloat(document.getElementById("afFactor").value)||1.5;
+  const n=parseInt(document.getElementById("afCount").value,10)||0;
+  const min=parseInt(document.getElementById("afMin").value,10)||20;
+  let last=[...stLevels].reverse().find(l=>!l.is_break);
+  let bb=last?last.bb:200, ante=last?(last.ante||0):0;
+  const round=v=>{const mag=Math.pow(10,Math.floor(Math.log10(v))-1);return Math.max(1,Math.round(v/mag)*mag);};
+  for(let k=0;k<n;k++){ bb=round(bb*f); const sb=round(bb/2); ante=ante?round(ante*f):0;
+    stLevels.push({sb,bb,ante,min,is_break:false}); }
+  renderStRows();
+};
+function stMsg(t,err){const m=document.getElementById("stMsg");m.textContent=t;m.className="msg "+(err?"err":"ok");setTimeout(()=>m.textContent="",2500);}
+function stPayload(){return{name:document.getElementById("stName").value.trim()||"無題",
+  starting_stack:parseInt(document.getElementById("stStack").value,10)||20000,
+  levels:stLevels, updated_at:new Date().toISOString()};}
+document.getElementById("stSave").onclick=async()=>{
+  if(!stEditId){stMsg("新規は「新規テンプレとして保存」を使ってください",true);return;}
+  const {error}=await db.from("blind_structures").update(stPayload()).eq("id",stEditId);
+  if(error)stMsg(error.message,true);else{stMsg("保存しました");await loadStructs(stEditId);}
+};
+document.getElementById("stSaveNew").onclick=async()=>{
+  const {data,error}=await db.from("blind_structures").insert(stPayload()).select("id").limit(1).single();
+  if(error)stMsg(error.message,true);else{stMsg("新規保存しました");await loadStructs(data.id);}
+};
+document.getElementById("stNew").onclick=()=>{stEditId=null;stLevels=[{sb:100,bb:200,ante:0,min:20,is_break:false}];
+  document.getElementById("stName").value="";document.getElementById("stStack").value="20000";
+  document.getElementById("stPick").value="";renderStRows();};
+document.getElementById("stDup").onclick=()=>{stEditId=null;
+  document.getElementById("stName").value=(document.getElementById("stName").value||"")+" (コピー)";
+  document.getElementById("stPick").value="";stMsg("複製モード：保存で新規作成されます");};
+document.getElementById("stDel").onclick=async()=>{
+  if(!stEditId){stMsg("削除対象がありません",true);return;}
+  if(!confirm("このストラクチャーを削除します"))return;
+  await db.from("blind_structures").delete().eq("id",stEditId);stEditId=null;stLevels=[];renderStRows();await loadStructs();
+};
+
+/* ======================================================
+   表示テーマ
+====================================================== */
+function fillThemeForm(){const t=(CLOCK&&CLOCK.theme)||{};
+  if(t.accent)document.getElementById("thAccent").value=t.accent;
+  if(t.text)document.getElementById("thText").value=t.text;
+  document.getElementById("thBgType").value=t.bg_type||"";
+  document.getElementById("thBgFrom").value=t.bg_from||"";
+  document.getElementById("thBgTo").value=t.bg_to||"";
+  document.getElementById("thBgUrl").value=t.bg_url||"";
+  document.getElementById("thOverlay").value=(typeof t.overlay==="number")?t.overlay:0.35;
+}
+document.getElementById("thSave").onclick=()=>{
+  const theme={ accent:document.getElementById("thAccent").value, text:document.getElementById("thText").value,
+    bg_type:document.getElementById("thBgType").value, bg_from:document.getElementById("thBgFrom").value.trim(),
+    bg_to:document.getElementById("thBgTo").value.trim(), bg_url:document.getElementById("thBgUrl").value.trim(),
+    overlay:parseFloat(document.getElementById("thOverlay").value)||0 };
+  patch({theme}).then(()=>{const m=document.getElementById("thMsg");m.textContent="テーマを保存（表示画面に即反映）";m.className="msg ok";setTimeout(()=>m.textContent="",2500);});
+};
+
+/* ===== タブ切替 ===== */
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");document.getElementById("v-"+t.dataset.v).classList.add("active");
+});
+
+/* ===== 起動 ===== */
+(async()=>{ await syncServerTime(); await loadStructs(); await loadClocks(); })();
+</script>
+</body>
+</html>

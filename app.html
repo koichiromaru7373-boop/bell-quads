@@ -694,12 +694,7 @@ input::placeholder{color:#7fa28d}
       <div class="pad">
         <div class="eyebrow" style="margin-bottom:.6rem">集客分析</div>
 
-        <label class="fld">棒グラフの指標（曜日別）</label>
-        <select id="statsChartMetric" style="margin-bottom:.6rem">
-          <option value="head">来店人数（1回あたり平均）</option>
-          <option value="reentry">リエントリー数（1回あたり平均）</option>
-          <option value="spend">客単価</option>
-        </select>
+        <label class="fld">曜日別の分布（点の大きさ＝人数／縦＝客単価／金枠＝リエントリーあり）</label>
         <div id="statsChart" style="margin-bottom:1.2rem"></div>
 
         <div class="divider" style="margin:1rem 0"></div>
@@ -3007,50 +3002,59 @@ function renderEventStats(){
 }
 document.getElementById("statsAxis").addEventListener("change",renderEventStats);
 document.getElementById("statsFilterTourney").addEventListener("change",()=>{renderEventStats();renderStatsChart();renderDailyTable();});
-document.getElementById("statsChartMetric").addEventListener("change",renderStatsChart);
 document.getElementById("aTabStats").addEventListener("click",()=>adminTab("stats"));
 
 function renderStatsChart(){
   if(!evStatsLoaded)return;
-  const metric=document.getElementById("statsChartMetric").value;
   const tourneyFilter=document.getElementById("statsFilterTourney").value;
   let rows=evStatsCache;
   if(tourneyFilter)rows=rows.filter(r=>String(r.tournament_id)===tourneyFilter);
   const events=buildEventLevel(rows);
-  const byDow=Array.from({length:7},()=>({eventCount:0,headcount:0,reentry:0,spendSum:0,spendW:0}));
-  events.forEach(e=>{
-    const g=byDow[e.dow_num];
-    g.eventCount++;
-    g.headcount+=e.headcount;
-    g.reentry+=e.reentry;
-    g.spendSum+=e.avgSpend*e.headcount;
-    g.spendW+=e.headcount;
-  });
-  const vals=byDow.map(g=>{
-    if(metric==="head")return g.eventCount? g.headcount/g.eventCount:0;
-    if(metric==="reentry")return g.eventCount? g.reentry/g.eventCount:0;
-    return g.spendW? Math.round(g.spendSum/g.spendW):0;
-  });
-  const counts=byDow.map(g=>g.eventCount);
-  const max=Math.max(1,...vals);
-  const barW=34,gap=14,chartH=140,topPad=22,botPad=40;
-  const svgW=(barW+gap)*7+gap;
+  const box=document.getElementById("statsChart");
+  if(!events.length){box.innerHTML='<div class="empty">データがありません</div>';return;}
+
+  const byDow=Array.from({length:7},()=>[]);
+  events.forEach(e=>byDow[e.dow_num].push(e));
+
+  const maxSpend=Math.max(1,...events.map(e=>e.avgSpend));
+  const maxHead=Math.max(1,...events.map(e=>e.headcount));
+
+  const colW=60,chartH=220,topPad=16,botPad=30,leftPad=52;
+  const svgW=leftPad+colW*7+10;
   const svgH=topPad+chartH+botPad;
-  const bars=vals.map((v,i)=>{
-    const bh=max>0?Math.round((v/max)*chartH):0;
-    const x=gap+i*(barW+gap);
-    const y=topPad+chartH-bh;
-    const label=metric==="spend"?("¥"+Math.round(v).toLocaleString()):v.toFixed(1);
-    const sub=counts[i]>0?(counts[i]+"回"):"—";
-    return '<g>'+
-      '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+Math.max(bh,1)+'" rx="4" fill="var(--gold)"></rect>'+
-      '<text x="'+(x+barW/2)+'" y="'+(y-6)+'" text-anchor="middle" font-size="11" fill="var(--cream)">'+label+'</text>'+
-      '<text x="'+(x+barW/2)+'" y="'+(topPad+chartH+16)+'" text-anchor="middle" font-size="12" fill="var(--gold)">'+DOW_JA[i]+'</text>'+
-      '<text x="'+(x+barW/2)+'" y="'+(topPad+chartH+30)+'" text-anchor="middle" font-size="9" fill="var(--cream)" opacity="0.6">'+sub+'</text>'+
-      '</g>';
-  }).join("");
-  document.getElementById("statsChart").innerHTML=
-    '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:100%;height:auto;max-width:480px;display:block;margin:0 auto">'+bars+'</svg>';
+
+  const ySteps=4;
+  let grid='';
+  for(let i=0;i<=ySteps;i++){
+    const val=Math.round(maxSpend*i/ySteps);
+    const y=topPad+chartH-(chartH*i/ySteps);
+    grid+='<line x1="'+leftPad+'" y1="'+y.toFixed(1)+'" x2="'+(svgW-10)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="1" opacity="0.3"/>';
+    grid+='<text x="'+(leftPad-6)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="9" fill="var(--cream)" opacity="0.7">¥'+val.toLocaleString()+'</text>';
+  }
+
+  let cols='';
+  let dots='';
+  byDow.forEach((list,dowIdx)=>{
+    const colX=leftPad+colW*dowIdx+colW/2;
+    cols+='<line x1="'+(leftPad+colW*dowIdx)+'" y1="'+topPad+'" x2="'+(leftPad+colW*dowIdx)+'" y2="'+(topPad+chartH)+'" stroke="var(--line)" stroke-width="1" opacity="0.15"/>';
+    cols+='<text x="'+colX+'" y="'+(topPad+chartH+18)+'" text-anchor="middle" font-size="12" fill="var(--gold)">'+DOW_JA[dowIdx]+'</text>';
+    const n=list.length;
+    list.forEach((e,i)=>{
+      const spread=n>1?colW*0.65:0;
+      const jitter=n>1?(spread*(i/(n-1)-0.5)):0;
+      const x=colX+jitter;
+      const y=topPad+chartH-(maxSpend>0?(e.avgSpend/maxSpend)*chartH:0);
+      const r=4+Math.sqrt((e.headcount||0)/maxHead)*10;
+      const ring=e.reentry>0?' stroke="var(--gold)" stroke-width="2"':' stroke="none"';
+      dots+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r.toFixed(1)+'" fill="rgba(244,208,63,0.55)"'+ring+'>'+
+        '<title>'+esc(e.event_date)+'（'+DOW_JA[e.dow_num]+'）'+esc(e.tournament_name||'')+'\n人数:'+e.headcount+' / リエントリー:'+e.reentry+' / 客単価:¥'+e.avgSpend.toLocaleString()+'</title>'+
+        '</circle>';
+    });
+  });
+
+  box.innerHTML='<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:100%;height:auto;max-width:560px;display:block;margin:0 auto">'+
+    grid+cols+dots+'</svg>'+
+    '<p class="tiny" style="text-align:center;margin-top:.4rem">点をタップ/ホバーすると詳細が出ます</p>';
 }
 
 function renderDailyTable(){

@@ -566,6 +566,7 @@ input::placeholder{color:#7fa28d}
       <button class="tab" data-group="prize" onclick="adminGroup('prize')">賞金</button>
       <button class="tab" data-group="ring" onclick="adminGroup('ring')">リング</button>
       <button class="tab" data-group="tourney" onclick="adminGroup('tourney')">トーナメント</button>
+      <button class="tab" data-group="stats" onclick="adminGroup('stats')">集客分析</button>
     </div>
     <div class="tabs" id="adminSub" style="overflow-x:auto;margin-top:.4rem">
       <span class="subgroup" data-group="event">
@@ -589,6 +590,9 @@ input::placeholder{color:#7fa28d}
       </span>
       <span class="subgroup" data-group="tourney" style="display:none">
         <button class="tab" id="aTabTourney">トーナメント</button>
+      </span>
+      <span class="subgroup" data-group="stats" style="display:none">
+        <button class="tab" id="aTabStats">集客分析</button>
       </span>
     </div>
 
@@ -682,6 +686,27 @@ input::placeholder{color:#7fa28d}
         <div class="pl-tablewrap"><table id="plTable" class="pl-table"></table></div>
         <button class="btn btn-ghost" id="plCsv" style="margin-top:1rem">この月をCSVで保存</button>
         <div class="msg" id="plMsg"></div>
+      </div>
+    </div>
+
+    <!-- 集客分析 -->
+    <div class="tpanel" id="apanel-stats">
+      <div class="pad">
+        <div class="eyebrow" style="margin-bottom:.6rem">集客分析</div>
+        <label class="fld">比較する軸</label>
+        <select id="statsAxis" style="margin-bottom:.6rem">
+          <option value="dow">曜日</option>
+          <option value="month">月</option>
+          <option value="fee">エントリー料金</option>
+          <option value="tourney">トーナメント種別</option>
+        </select>
+        <label class="fld">トーナメントで絞り込み（任意）</label>
+        <select id="statsFilterTourney" style="margin-bottom:.6rem">
+          <option value="">すべて</option>
+        </select>
+        <div class="pl-tablewrap"><table id="statsTable" class="pl-table"></table></div>
+        <p class="tiny" style="margin-top:.8rem">来店人数＝延べ（同じ人が別日に来れば加算）／客単価＝マイル決済＋現金の合計を精算件数で割った平均</p>
+        <div class="msg" id="statsMsg"></div>
       </div>
     </div>
 
@@ -2150,12 +2175,12 @@ document.getElementById("btnAdminEnter").addEventListener("click",adminEnter);
 function adminEnter(){const pin=document.getElementById("adminPin").value.trim();if(pin!==ADMIN_PIN){setMsg(adminPinMsg,"PINが違います","err");return;}document.getElementById("adminPin").value="";setMsg(adminPinMsg,"","");showScreen("screen-admin");adminTab("event");}
 document.getElementById("btnAdminExit").addEventListener("click",()=>showScreen("screen-login"));
 function adminTab(t){
-  [["aTabEvent","apanel-event","event"],["aTabEventTmpl","apanel-eventtmpl","eventtmpl"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"],["aTabRing","apanel-ring","ring"],["aTabVip","apanel-vip","vip"],["aTabTourney","apanel-tourney","tourney"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
-  if(t==="event")ecInit();else if(t==="eventtmpl"){loadEcTmplMgr();}else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();else if(t==="prize"){przClear();loadPrize();}else if(t==="ring"){loadRingSettings();}else if(t==="vip"){vipInit();}else if(t==="tourney"){tourneyInit();}
+  [["aTabEvent","apanel-event","event"],["aTabEventTmpl","apanel-eventtmpl","eventtmpl"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"],["aTabRing","apanel-ring","ring"],["aTabVip","apanel-vip","vip"],["aTabTourney","apanel-tourney","tourney"],["aTabStats","apanel-stats","stats"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
+  if(t==="event")ecInit();else if(t==="eventtmpl"){loadEcTmplMgr();}else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();else if(t==="prize"){przClear();loadPrize();}else if(t==="ring"){loadRingSettings();}else if(t==="vip"){vipInit();}else if(t==="tourney"){tourneyInit();}else if(t==="stats"){loadEventStats();}
   adminSyncParent(t);
 }
 /* 親タブ（グループ）同期 */
-const ADMIN_GROUP_CHILDREN={event:["event","eventtmpl"],ops:["staff","pl","vip"],site:["cms","photo"],prize:["prize"],ring:["ring"],tourney:["tourney"]};
+const ADMIN_GROUP_CHILDREN={event:["event","eventtmpl"],ops:["staff","pl","vip"],site:["cms","photo"],prize:["prize"],ring:["ring"],tourney:["tourney"],stats:["stats"]};
 function adminGroupOf(t){for(const g in ADMIN_GROUP_CHILDREN){if(ADMIN_GROUP_CHILDREN[g].indexOf(t)>=0)return g;}return null;}
 function adminSyncParent(t){
   const g=adminGroupOf(t);
@@ -2879,6 +2904,91 @@ document.getElementById("ringCancel").addEventListener("click",()=>{
   showScreen("screen-login");
 })();
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopScanner();});
+/* ===== 集客分析 ===== */
+const DOW_JA=["日","月","火","水","木","金","土"];
+let evStatsCache=[],evStatsLoaded=false;
+async function loadEventStats(){
+  const msg=document.getElementById("statsMsg");
+  setMsg(msg,"読み込み中…","");
+  try{
+    const {data,error}=await db.from("v_event_stats").select("*");
+    if(error)throw error;
+    evStatsCache=data||[];
+    evStatsLoaded=true;
+    fillStatsTourneyFilter();
+    renderEventStats();
+    setMsg(msg,"","");
+  }catch(e){console.error("event stats",e);setMsg(msg,"読み込みに失敗しました","err");}
+}
+function fillStatsTourneyFilter(){
+  const sel=document.getElementById("statsFilterTourney");
+  const cur=sel.value;
+  const seen={};
+  evStatsCache.forEach(r=>{if(r.tournament_id)seen[r.tournament_id]=r.tournament_name||"（不明）";});
+  const opts=Object.keys(seen).map(id=>'<option value="'+id+'">'+esc(seen[id])+'</option>');
+  sel.innerHTML='<option value="">すべて</option>'+opts.join("");
+  if([...sel.options].some(o=>o.value===cur))sel.value=cur;
+}
+function statsGroupKey(e,axis){
+  if(axis==="dow")return DOW_JA[e.dow_num]+"曜日";
+  if(axis==="month")return e.ym;
+  if(axis==="fee")return e.entry_fee?("¥"+e.entry_fee.toLocaleString()):"（無料/不明）";
+  if(axis==="tourney")return e.tournament_name||"（不明）";
+  return "-";
+}
+function statsAxisLabel(a){return a==="dow"?"曜日":a==="month"?"月":a==="fee"?"エントリー料金":"トーナメント";}
+function buildEventLevel(rows){
+  const evMap={};
+  rows.forEach(r=>{
+    const k=r.event_date+"|"+(r.tournament_id||"");
+    if(!evMap[k])evMap[k]={event_date:r.event_date,tournament_id:r.tournament_id,tournament_name:r.tournament_name,dow_num:r.dow_num,ym:r.ym,entry_fee:r.entry_fee,users:new Set(),reentry:0,spend:0,spendCount:0};
+    const e=evMap[k];
+    e.users.add(r.user_id);
+    e.reentry+=r.reentry_count||0;
+    if(r.total_spend!=null){e.spend+=r.total_spend;e.spendCount++;}
+  });
+  return Object.values(evMap).map(e=>({
+    ...e,
+    headcount:e.users.size,
+    avgSpend: e.spendCount? Math.round(e.spend/e.spendCount):0
+  }));
+}
+function renderEventStats(){
+  if(!evStatsLoaded)return;
+  const axis=document.getElementById("statsAxis").value;
+  const tourneyFilter=document.getElementById("statsFilterTourney").value;
+  let rows=evStatsCache;
+  if(tourneyFilter)rows=rows.filter(r=>String(r.tournament_id)===tourneyFilter);
+  const events=buildEventLevel(rows);
+  const groups={};
+  events.forEach(e=>{
+    const k=statsGroupKey(e,axis);
+    if(!groups[k])groups[k]={key:k,eventCount:0,headcount:0,reentry:0,spendSum:0,spendW:0};
+    const g=groups[k];
+    g.eventCount++;
+    g.headcount+=e.headcount;
+    g.reentry+=e.reentry;
+    g.spendSum+=e.avgSpend*e.headcount;
+    g.spendW+=e.headcount;
+  });
+  const list=Object.values(groups).map(g=>({
+    key:g.key,
+    eventCount:g.eventCount,
+    headcount:g.headcount,
+    avgHead: g.eventCount? (g.headcount/g.eventCount):0,
+    reentry:g.reentry,
+    avgReentry: g.eventCount? (g.reentry/g.eventCount):0,
+    avgSpend: g.spendW? Math.round(g.spendSum/g.spendW):0
+  })).sort((a,b)=>b.avgHead-a.avgHead);
+  const w=document.getElementById("statsTable");
+  if(!list.length){w.innerHTML='<tr><td>データがありません</td></tr>';return;}
+  w.innerHTML='<thead><tr><th>'+statsAxisLabel(axis)+'</th><th>開催回数</th><th>来店人数(延)</th><th>1回あたり人数</th><th>リエントリー数</th><th>1回あたりリエントリー</th><th>客単価</th></tr></thead><tbody>'+
+    list.map(r=>'<tr><td>'+esc(r.key)+'</td><td>'+r.eventCount+'</td><td>'+r.headcount+'</td><td>'+r.avgHead.toFixed(1)+'</td><td>'+r.reentry+'</td><td>'+r.avgReentry.toFixed(1)+'</td><td>¥'+yen(r.avgSpend)+'</td></tr>').join("")+
+    '</tbody>';
+}
+document.getElementById("statsAxis").addEventListener("change",renderEventStats);
+document.getElementById("statsFilterTourney").addEventListener("change",renderEventStats);
+document.getElementById("aTabStats").addEventListener("click",()=>adminTab("stats"));
 </script>
 </body>
 </html>

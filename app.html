@@ -693,6 +693,17 @@ input::placeholder{color:#7fa28d}
     <div class="tpanel" id="apanel-stats">
       <div class="pad">
         <div class="eyebrow" style="margin-bottom:.6rem">集客分析</div>
+
+        <label class="fld">棒グラフの指標（曜日別）</label>
+        <select id="statsChartMetric" style="margin-bottom:.6rem">
+          <option value="head">来店人数（1回あたり平均）</option>
+          <option value="reentry">リエントリー数（1回あたり平均）</option>
+          <option value="spend">客単価</option>
+        </select>
+        <div id="statsChart" style="margin-bottom:1.2rem"></div>
+
+        <div class="divider" style="margin:1rem 0"></div>
+
         <label class="fld">比較する軸</label>
         <select id="statsAxis" style="margin-bottom:.6rem">
           <option value="dow">曜日</option>
@@ -706,6 +717,12 @@ input::placeholder{color:#7fa28d}
         </select>
         <div class="pl-tablewrap"><table id="statsTable" class="pl-table"></table></div>
         <p class="tiny" style="margin-top:.8rem">来店人数＝延べ（同じ人が別日に来れば加算）／客単価＝マイル決済＋現金の合計を精算件数で割った平均</p>
+
+        <div class="divider" style="margin:1.2rem 0"></div>
+
+        <div class="eyebrow" style="margin-bottom:.6rem">日ごとの内訳</div>
+        <div class="pl-tablewrap"><table id="statsDailyTable" class="pl-table"></table></div>
+
         <div class="msg" id="statsMsg"></div>
       </div>
     </div>
@@ -2917,6 +2934,8 @@ async function loadEventStats(){
     evStatsLoaded=true;
     fillStatsTourneyFilter();
     renderEventStats();
+    renderStatsChart();
+    renderDailyTable();
     setMsg(msg,"","");
   }catch(e){console.error("event stats",e);setMsg(msg,"読み込みに失敗しました","err");}
 }
@@ -2987,8 +3006,65 @@ function renderEventStats(){
     '</tbody>';
 }
 document.getElementById("statsAxis").addEventListener("change",renderEventStats);
-document.getElementById("statsFilterTourney").addEventListener("change",renderEventStats);
+document.getElementById("statsFilterTourney").addEventListener("change",()=>{renderEventStats();renderStatsChart();renderDailyTable();});
+document.getElementById("statsChartMetric").addEventListener("change",renderStatsChart);
 document.getElementById("aTabStats").addEventListener("click",()=>adminTab("stats"));
+
+function renderStatsChart(){
+  if(!evStatsLoaded)return;
+  const metric=document.getElementById("statsChartMetric").value;
+  const tourneyFilter=document.getElementById("statsFilterTourney").value;
+  let rows=evStatsCache;
+  if(tourneyFilter)rows=rows.filter(r=>String(r.tournament_id)===tourneyFilter);
+  const events=buildEventLevel(rows);
+  const byDow=Array.from({length:7},()=>({eventCount:0,headcount:0,reentry:0,spendSum:0,spendW:0}));
+  events.forEach(e=>{
+    const g=byDow[e.dow_num];
+    g.eventCount++;
+    g.headcount+=e.headcount;
+    g.reentry+=e.reentry;
+    g.spendSum+=e.avgSpend*e.headcount;
+    g.spendW+=e.headcount;
+  });
+  const vals=byDow.map(g=>{
+    if(metric==="head")return g.eventCount? g.headcount/g.eventCount:0;
+    if(metric==="reentry")return g.eventCount? g.reentry/g.eventCount:0;
+    return g.spendW? Math.round(g.spendSum/g.spendW):0;
+  });
+  const counts=byDow.map(g=>g.eventCount);
+  const max=Math.max(1,...vals);
+  const barW=34,gap=14,chartH=140,topPad=22,botPad=40;
+  const svgW=(barW+gap)*7+gap;
+  const svgH=topPad+chartH+botPad;
+  const bars=vals.map((v,i)=>{
+    const bh=max>0?Math.round((v/max)*chartH):0;
+    const x=gap+i*(barW+gap);
+    const y=topPad+chartH-bh;
+    const label=metric==="spend"?("¥"+Math.round(v).toLocaleString()):v.toFixed(1);
+    const sub=counts[i]>0?(counts[i]+"回"):"—";
+    return '<g>'+
+      '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+Math.max(bh,1)+'" rx="4" fill="var(--gold)"></rect>'+
+      '<text x="'+(x+barW/2)+'" y="'+(y-6)+'" text-anchor="middle" font-size="11" fill="var(--cream)">'+label+'</text>'+
+      '<text x="'+(x+barW/2)+'" y="'+(topPad+chartH+16)+'" text-anchor="middle" font-size="12" fill="var(--gold)">'+DOW_JA[i]+'</text>'+
+      '<text x="'+(x+barW/2)+'" y="'+(topPad+chartH+30)+'" text-anchor="middle" font-size="9" fill="var(--cream)" opacity="0.6">'+sub+'</text>'+
+      '</g>';
+  }).join("");
+  document.getElementById("statsChart").innerHTML=
+    '<svg viewBox="0 0 '+svgW+' '+svgH+'" style="width:100%;height:auto;max-width:480px;display:block;margin:0 auto">'+bars+'</svg>';
+}
+
+function renderDailyTable(){
+  if(!evStatsLoaded)return;
+  const tourneyFilter=document.getElementById("statsFilterTourney").value;
+  let rows=evStatsCache;
+  if(tourneyFilter)rows=rows.filter(r=>String(r.tournament_id)===tourneyFilter);
+  const events=buildEventLevel(rows).sort((a,b)=>a.event_date<b.event_date?1:(a.event_date>b.event_date?-1:0));
+  const w=document.getElementById("statsDailyTable");
+  if(!events.length){w.innerHTML='<tr><td>データがありません</td></tr>';return;}
+  w.innerHTML='<thead><tr><th>日付</th><th>曜日</th><th>トーナメント</th><th>人数</th><th>リエントリー</th><th>客単価</th></tr></thead><tbody>'+
+    events.map(e=>'<tr><td>'+esc(e.event_date)+'</td><td>'+DOW_JA[e.dow_num]+'</td><td>'+esc(e.tournament_name||"—")+'</td><td>'+e.headcount+'</td><td>'+e.reentry+'</td><td>¥'+yen(e.avgSpend)+'</td></tr>').join("")+
+    '</tbody>';
+}
 </script>
 </body>
 </html>

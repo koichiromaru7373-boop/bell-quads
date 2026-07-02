@@ -567,6 +567,7 @@ input::placeholder{color:#7fa28d}
       <button class="tab" data-group="ring" onclick="adminGroup('ring')">リング</button>
       <button class="tab" data-group="tourney" onclick="adminGroup('tourney')">トーナメント</button>
       <button class="tab" data-group="stats" onclick="adminGroup('stats')">集客分析</button>
+      <button class="tab" data-group="audit" onclick="adminGroup('audit')">監査ログ</button>
     </div>
     <div class="tabs" id="adminSub" style="overflow-x:auto;margin-top:.4rem">
       <span class="subgroup" data-group="event">
@@ -593,6 +594,9 @@ input::placeholder{color:#7fa28d}
       </span>
       <span class="subgroup" data-group="stats" style="display:none">
         <button class="tab" id="aTabStats">集客分析</button>
+      </span>
+      <span class="subgroup" data-group="audit" style="display:none">
+        <button class="tab" id="aTabAudit">監査ログ</button>
       </span>
     </div>
 
@@ -719,6 +723,20 @@ input::placeholder{color:#7fa28d}
         <div class="pl-tablewrap"><table id="statsDailyTable" class="pl-table"></table></div>
 
         <div class="msg" id="statsMsg"></div>
+      </div>
+    </div>
+
+    <!-- 監査ログ -->
+    <div class="tpanel" id="apanel-audit">
+      <div class="pad">
+        <div class="eyebrow" style="margin-bottom:.6rem">監査ログ（金銭が動く操作すべて）</div>
+        <label class="fld">操作種別で絞り込み</label>
+        <select id="auditFilterAction" style="margin-bottom:.6rem">
+          <option value="">すべて</option>
+        </select>
+        <div class="pl-tablewrap"><table id="auditTable" class="pl-table"></table></div>
+        <button class="btn" id="auditLoadMoreBtn" style="margin-top:.8rem;width:100%">もっと見る</button>
+        <div class="msg" id="auditMsg"></div>
       </div>
     </div>
 
@@ -2187,12 +2205,12 @@ document.getElementById("btnAdminEnter").addEventListener("click",adminEnter);
 function adminEnter(){const pin=document.getElementById("adminPin").value.trim();if(pin!==ADMIN_PIN){setMsg(adminPinMsg,"PINが違います","err");return;}document.getElementById("adminPin").value="";setMsg(adminPinMsg,"","");showScreen("screen-admin");adminTab("event");}
 document.getElementById("btnAdminExit").addEventListener("click",()=>showScreen("screen-login"));
 function adminTab(t){
-  [["aTabEvent","apanel-event","event"],["aTabEventTmpl","apanel-eventtmpl","eventtmpl"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"],["aTabRing","apanel-ring","ring"],["aTabVip","apanel-vip","vip"],["aTabTourney","apanel-tourney","tourney"],["aTabStats","apanel-stats","stats"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
-  if(t==="event")ecInit();else if(t==="eventtmpl"){loadEcTmplMgr();}else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();else if(t==="prize"){przClear();loadPrize();}else if(t==="ring"){loadRingSettings();}else if(t==="vip"){vipInit();}else if(t==="tourney"){tourneyInit();}else if(t==="stats"){loadEventStats();}
+  [["aTabEvent","apanel-event","event"],["aTabEventTmpl","apanel-eventtmpl","eventtmpl"],["aTabPL","apanel-pl","pl"],["aTabStaff","apanel-staff","staff"],["aTabCms","apanel-cms","cms"],["aTabPhoto","apanel-photo","photo"],["aTabPrize","apanel-prize","prize"],["aTabRing","apanel-ring","ring"],["aTabVip","apanel-vip","vip"],["aTabTourney","apanel-tourney","tourney"],["aTabStats","apanel-stats","stats"],["aTabAudit","apanel-audit","audit"]].forEach(a=>{document.getElementById(a[0]).classList.toggle("active",t===a[2]);document.getElementById(a[1]).classList.toggle("active",t===a[2]);});
+  if(t==="event")ecInit();else if(t==="eventtmpl"){loadEcTmplMgr();}else if(t==="pl")loadPL();else if(t==="staff"){stClear();loadStaff();}else if(t==="cms")loadCms();else if(t==="photo")photosLoad();else if(t==="prize"){przClear();loadPrize();}else if(t==="ring"){loadRingSettings();}else if(t==="vip"){vipInit();}else if(t==="tourney"){tourneyInit();}else if(t==="stats"){loadEventStats();}else if(t==="audit"){loadAuditLog(true);}
   adminSyncParent(t);
 }
 /* 親タブ（グループ）同期 */
-const ADMIN_GROUP_CHILDREN={event:["event","eventtmpl"],ops:["staff","pl","vip"],site:["cms","photo"],prize:["prize"],ring:["ring"],tourney:["tourney"],stats:["stats"]};
+const ADMIN_GROUP_CHILDREN={event:["event","eventtmpl"],ops:["staff","pl","vip"],site:["cms","photo"],prize:["prize"],ring:["ring"],tourney:["tourney"],stats:["stats"],audit:["audit"]};
 function adminGroupOf(t){for(const g in ADMIN_GROUP_CHILDREN){if(ADMIN_GROUP_CHILDREN[g].indexOf(t)>=0)return g;}return null;}
 function adminSyncParent(t){
   const g=adminGroupOf(t);
@@ -3069,6 +3087,51 @@ function renderDailyTable(){
     events.map(e=>'<tr><td>'+esc(e.event_date)+'</td><td>'+DOW_JA[e.dow_num]+'</td><td>'+esc(e.tournament_name||"—")+'</td><td>'+e.headcount+'</td><td>'+e.reentry+'</td><td>¥'+yen(e.avgSpend)+'</td></tr>').join("")+
     '</tbody>';
 }
+/* ===== 監査ログ ===== */
+let auditCache=[],auditLimit=200;
+async function loadAuditLog(reset){
+  if(reset)auditLimit=200;
+  const msg=document.getElementById("auditMsg");
+  setMsg(msg,"読み込み中…","");
+  try{
+    const {data,error}=await db.from("audit_log").select("*").order("created_at",{ascending:false}).limit(auditLimit);
+    if(error)throw error;
+    auditCache=data||[];
+    fillAuditActionFilter();
+    renderAuditTable();
+    setMsg(msg,"","");
+  }catch(e){console.error("audit log",e);setMsg(msg,"読み込みに失敗しました","err");}
+}
+function fillAuditActionFilter(){
+  const sel=document.getElementById("auditFilterAction");
+  const cur=sel.value;
+  const seen=[...new Set(auditCache.map(r=>r.action))].sort();
+  sel.innerHTML='<option value="">すべて</option>'+seen.map(a=>'<option value="'+esc(a)+'">'+esc(a)+'</option>').join("");
+  if(seen.includes(cur))sel.value=cur;
+}
+function fmtAuditDT(iso){
+  const d=new Date(iso);
+  return d.getFullYear()+"/"+(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+}
+function fmtAuditDetail(detail){
+  if(!detail||typeof detail!=="object")return"";
+  try{
+    return Object.entries(detail).filter(([,v])=>v!==null&&v!==undefined&&v!=="").map(([k,v])=>k+":"+(typeof v==="object"?JSON.stringify(v):v)).join(" / ");
+  }catch(e){return "";}
+}
+function renderAuditTable(){
+  const filter=document.getElementById("auditFilterAction").value;
+  let rows=auditCache;
+  if(filter)rows=rows.filter(r=>r.action===filter);
+  const w=document.getElementById("auditTable");
+  if(!rows.length){w.innerHTML='<tr><td>データがありません</td></tr>';return;}
+  w.innerHTML='<thead><tr><th>日時</th><th>スタッフ</th><th>操作</th><th>対象</th><th>金額</th><th>詳細</th></tr></thead><tbody>'+
+    rows.map(r=>'<tr><td>'+fmtAuditDT(r.created_at)+'</td><td>'+esc(r.staff_name||"—")+'</td><td>'+esc(r.action)+'</td><td>'+esc(r.target_user_name||"—")+'</td><td>'+(r.amount!=null?yen(r.amount):"—")+'</td><td class="tiny" style="text-align:left;white-space:normal">'+esc(fmtAuditDetail(r.detail))+'</td></tr>').join("")+
+    '</tbody>';
+}
+document.getElementById("auditFilterAction").addEventListener("change",renderAuditTable);
+document.getElementById("auditLoadMoreBtn").addEventListener("click",()=>{auditLimit+=200;loadAuditLog(false);});
+document.getElementById("aTabAudit").addEventListener("click",()=>loadAuditLog(true));
 </script>
 </body>
 </html>
